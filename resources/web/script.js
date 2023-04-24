@@ -2,6 +2,13 @@
 
 function SPVFD(paramIdx, val) {
   console.log("paramIdx: " + paramIdx + " value:" + val);
+  points.push({
+    x: width,
+    y: val
+  })
+  if (points.length > width) {
+    points.shift();
+  }
 }
 
 function SCVFD(ctrlTag, val) {
@@ -188,19 +195,16 @@ function main() {
       ctx.lineTo(width, y);
       ctx.stroke();
       ctx.strokeStyle = "rgb(40,20,30)"
-      ctx.fillText(Object.keys(NOTE_NAMES)[i], 0, y);
+      ctx.fillText(Object.keys(NOTE_NAMES)[i], 0, y - 2);
     }
 
     // draw points
     for (let i = 0; i < points.length; i++) {
 
-      ctx.fillStyle = noteColor(i / points.length)
       let freq = points[i]["y"];
+      ctx.fillStyle = noteColor(i / points.length)
       ctx.fillRect(points[i]["x"], freq_to_y_position(freq) - radius / 2, radius, radius);
       points[i].x -= speed;
-      if (points[i].x < 0 - radius) {
-        points[i].x += width + radius;
-      }
     }
 
     requestAnimationFrame(animate);
