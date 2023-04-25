@@ -1,93 +1,103 @@
+
 #include "PitchAnalyzer.h"
 #include "IPlug_include_in_plug_src.h"
 
 PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
-: Plugin(info, MakeConfig(kNumParams, kNumPresets))
+  : Plugin(info, MakeConfig(kNumParams, kNumPresets))
+  , hand()
 {
-  GetParam(kGain)->InitGain("Gain", -70., -70, 0.);
-
-  // Hard-coded paths must be modified!
   mEditorInitFunc = [&]() {
 #ifdef OS_WIN
     LoadFile(R"(D:\rep\iPlug2\Examples\PitchAnalyzer\resources\web\index.html)", nullptr);
 #else
     LoadFile("index.html", GetBundleID());
 #endif
-    
     EnableScroll(false);
   };
-  
-  MakePreset("One", -70.);
-  MakePreset("Two", -30.);
-  MakePreset("Three", 0.);
+
+  for (int i = 0; i < APP_SIGNAL_VECTOR_SIZE; i++)
+  {
+    FREQ_BINS[i] = i * GetSampleRate() / APP_SIGNAL_VECTOR_SIZE;
+  }
+}
+MKL_LONG PitchAnalyzer::fft(Ipp64fc* x)
+{
+  MKL_LONG status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, APP_SIGNAL_VECTOR_SIZE);
+  status = DftiCommitDescriptor(hand);
+  status = DftiComputeForward(hand, x);
+  status = DftiFreeDescriptor(&hand);
+  return status;
+};
+double PitchAnalyzer::harmonic_product_spectrum(sample* x)
+{
+  /* Convert to imaginary */
+  Ipp64fc fft_x[APP_SIGNAL_VECTOR_SIZE];
+  MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, APP_SIGNAL_VECTOR_SIZE);
+
+  /* Compute an FFT */
+  status = fft(fft_x);
+  sample fft_mag[APP_SIGNAL_VECTOR_SIZE];
+  ippsReal_64fc(fft_x, fft_mag, APP_SIGNAL_VECTOR_SIZE);
+  ippsAbs_64f_I(fft_mag, APP_SIGNAL_VECTOR_SIZE);
+
+
+  /* Compute an HPS */
+  sample y[HARMONIC_SMALLEST_LENGTH];
+  memcpy(y, fft_mag, HARMONIC_SMALLEST_LENGTH*sizeof(sample));  // y = mag[:smallestLength].copy()
+  for (int prod_i = 2; prod_i < NUM_HARMONIC_PROD+1; prod_i++)
+  {
+    // multiply by every second, every third ... every num_harmonic_prod+1
+    // y *= mag[::prod_i][:smallestLength]
+    for (int i = 0; i < HARMONIC_SMALLEST_LENGTH; i++)
+    {
+      y[i] *= fft_mag[i * prod_i];
+    }
+  }
+
+  /* Compute frequency */
+  int max_y_index = cblas_icamax(APP_SIGNAL_VECTOR_SIZE, y, 1);
+  return FREQ_BINS[max_y_index];
 }
 
 void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const double gain = GetParam(kGain)->DBToAmp();
-  
+  memcpy(&outputs, &inputs, sizeof(inputs)); 
+  sample x[APP_SIGNAL_VECTOR_SIZE];
   sample maxVal = 0.;
-  
-
-  for (int s = 0; s < nFrames; s++)
-  {
-    outputs[0][s] = inputs[0][s] * mGainSmoother.Process(gain);
-    outputs[1][s] = outputs[0][s]; // copy left
-    
-    maxVal += std::fabs(outputs[0][s]);
+  int nan_ctr = 0;
+  for (int i = 0; i < nFrames; i++)
+  { 
+    if (std::isnan(inputs[0][i]) || std::isnan(inputs[1][i]))
+    {
+      x[i] = 0.;
+      nan_ctr += 1;
+      continue;
+    }
+    x[i] = (inputs[0][i] + inputs[1][i]) / 2.;
+    maxVal += std::fabs(x[i]);
   }
-  
   mLastPeak = static_cast<float>(maxVal / (sample) nFrames);
-
-  // here do FFT and harmonic stuff and save it in mLastFreq  mLastNote
-
-  /*
-  FREQUENCIES = np.fft.fftfreq(WINDOW_SIZE, 1 / SAMPLE_RATE)[: WINDOW_SIZE // 2]
-  def harmonic_product_spectrum(chunk):
-      num_prod = 3
-      mag = np.abs(np.fft.fft(chunk).real)[: WINDOW_SIZE // 2]
-      smallestLength = int(np.ceil(len(mag) / num_prod))
-      y = mag[:smallestLength].copy()
-      for i in range(2, num_prod + 1):
-          y *= mag[::i][:smallestLength]
-
-      return (note float) 12 * np.log(FREQUENCIES[y.argmax()] / 440) / np.log(2)
-    */
+  if (mLastPeak > 0.001)
+    mLastFreq = harmonic_product_spectrum(x);
 }
 
 void PitchAnalyzer::OnReset()
 {
-  auto sr = GetSampleRate();
-  mOscillator.SetSampleRate(sr);
-  mGainSmoother.SetSmoothTime(20., sr);
+
 }
 
 bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData)
 {
-  if (msgTag == kMsgTagButton1)
-    Resize(512, 335);
-  else if(msgTag == kMsgTagButton2)
-    Resize(1024, 335);
-  else if(msgTag == kMsgTagButton3)
-    Resize(1024, 768);
-  else if (msgTag == kMsgTagBinaryTest)
-  {
-    auto uint8Data = reinterpret_cast<const uint8_t*>(pData);
-    DBGMSG("Data Size %i bytes\n",  dataSize);
-    DBGMSG("Byte values: %i, %i, %i, %i\n", uint8Data[0], uint8Data[1], uint8Data[2], uint8Data[3]);
-  }
-
   return false;
 }
 
 void PitchAnalyzer::OnIdle()
 {
-    SendControlValueFromDelegate(kCtrlTagMeter, mLastPeak);
+    SendControlValueFromDelegate(0, mLastFreq);
 }
 
 void PitchAnalyzer::OnParamChange(int paramIdx)
 {
-  DBGMSG("gain %f\n", GetParam(paramIdx)->Value());
 }
 
 void PitchAnalyzer::ProcessMidiMsg(const IMidiMsg& msg)

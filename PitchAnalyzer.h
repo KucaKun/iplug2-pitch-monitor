@@ -1,9 +1,9 @@
 #pragma once
 
 #include "IPlug_include_in_plug_hdr.h"
-#include "Oscillator.h"
-#include "Smoothers.h"
-
+#include "mkl.h"
+#include "ipps.h"
+#include <complex>
 using namespace iplug;
 
 const int kNumPresets = 3;
@@ -27,6 +27,8 @@ enum EControlTags
   kCtrlTagMeter = 0,
 };
 
+typedef std::complex<double> Complex;
+
 class PitchAnalyzer final : public Plugin
 {
 public:
@@ -40,8 +42,11 @@ public:
   void OnParamChange(int paramIdx) override;
 
 private:
+  MKL_LONG fft(Ipp64fc* x);
+  double harmonic_product_spectrum(sample* x);
+
+  DFTI_DESCRIPTOR_HANDLE hand;
   float mLastPeak = 0.;
-  float mLastPeak = 0.;
-  FastSinOscillator<sample> mOscillator {0., 440.};
-  LogParamSmooth<sample, 1> mGainSmoother;
+  double mLastFreq = 0.;
+  double FREQ_BINS[APP_SIGNAL_VECTOR_SIZE];
 };

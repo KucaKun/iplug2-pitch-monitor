@@ -24,8 +24,8 @@
 #define PLUG_DOES_MPE 0
 #define PLUG_DOES_STATE_CHUNKS 0
 #define PLUG_HAS_UI 1
-#define PLUG_WIDTH 600
-#define PLUG_HEIGHT 600
+#define PLUG_WIDTH 1000
+#define PLUG_HEIGHT 858
 #define PLUG_FPS 60
 #define PLUG_SHARED_RESOURCES 0
 #define PLUG_HOST_RESIZE 0
@@ -49,4 +49,13 @@
 #define APP_N_VECTOR_WAIT 0
 #define APP_MULT 1
 #define APP_COPY_AUV3 0
-#define APP_SIGNAL_VECTOR_SIZE 64
+
+#define APP_SIGNAL_VECTOR_SIZE 2048
+#define NUM_HARMONIC_PROD 3
+#ifndef _TOOLS_H_
+#define _TOOLS_H_
+constexpr int _const_ceil(float num) { return (static_cast<float>(static_cast<int>(num)) == num) ? static_cast<int>(num) : static_cast<int>(num) + ((num > 0) ? 1 : 0); }
+constexpr int h_s_l() { return _const_ceil(static_cast<float>(APP_SIGNAL_VECTOR_SIZE / 2) / static_cast<float>(NUM_HARMONIC_PROD)); }
+#endif
+// 683
+#define HARMONIC_SMALLEST_LENGTH h_s_l()
