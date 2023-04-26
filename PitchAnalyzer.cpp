@@ -33,8 +33,11 @@ double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
     /* Compute an FFT */
     status = fft(fft_x);
     sample fft_mag[APP_SIGNAL_VECTOR_SIZE];
-    ippsReal_64fc(fft_x, fft_mag, APP_SIGNAL_VECTOR_SIZE);
+    ippsMagnitude_64fc(fft_x, fft_mag, APP_SIGNAL_VECTOR_SIZE);
+    //ippsReal_64fc(fft_x, fft_mag, APP_SIGNAL_VECTOR_SIZE);
     ippsAbs_64f_I(fft_mag, APP_SIGNAL_VECTOR_SIZE);
+    memcpy(mLastPlot, fft_mag, sizeof(fft_mag) / 2);
+
 
     /* Compute an HPS */
     sample y[HARMONIC_SMALLEST_LENGTH];
@@ -44,38 +47,37 @@ double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
         // y *= mag[::prod_i][:smallestLength]
         for (int i = 0; i < HARMONIC_SMALLEST_LENGTH; i++) {
             y[i] *= fft_mag[i * prod_i];
+            if (isinf(y[i])) {
+                y[i] = DBL_MAX;
+            }
         }
     }
-
     /* Compute frequency */
-    int max_y_index = cblas_icamax(APP_SIGNAL_VECTOR_SIZE, fft_mag, 1);
+    int max_y_index = cblas_icamax(HARMONIC_SMALLEST_LENGTH, y, 1);
     return FREQ_BINS[max_y_index];
 }
 
 void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames) {
-    memcpy(&outputs, &inputs, sizeof(inputs));
     sample x[APP_SIGNAL_VECTOR_SIZE];
-    sample maxVal = 0.;
-    int nan_ctr = 0;
-    for (int i = 0; i < nFrames; i++) {
-        if (std::isnan(inputs[0][i]) || std::isnan(inputs[1][i])) {
-            x[i] = 0.;
-            nan_ctr += 1;
-            continue;
-        }
-        x[i] = (inputs[0][i] + inputs[1][i]) / 2.;
-        maxVal += std::fabs(x[i]);
-    }
-    mLastPeak = static_cast<float>(maxVal / (sample)nFrames);
-    if (mLastPeak > 0.001)
-        mLastFreq = harmonic_product_spectrum(x);
+    memcpy(x, &inputs, sizeof(inputs));
+    mLastFreq = harmonic_product_spectrum(x);
+    memcpy(&outputs, &inputs, sizeof(inputs));
 }
 
 void PitchAnalyzer::OnReset() {}
 
 bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) { return false; }
 
-void PitchAnalyzer::OnIdle() { SendControlValueFromDelegate(0, mLastFreq); }
+void PitchAnalyzer::OnIdle() {
+    SendControlValueFromDelegate(0, mLastFreq);
+    for (int i = 0; i < 100; i++) {
+
+        SendControlValueFromDelegate(lastSentPlotIndex + 1, mLastPlot[lastSentPlotIndex]);
+        if (++lastSentPlotIndex == APP_SIGNAL_VECTOR_SIZE / 2) {
+            lastSentPlotIndex = 0;
+        }
+    }
+}
 
 void PitchAnalyzer::OnParamChange(int paramIdx) {}
 
