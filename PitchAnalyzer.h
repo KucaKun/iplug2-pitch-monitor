@@ -33,7 +33,7 @@ class PitchAnalyzer final : public Plugin
 {
 public:
   PitchAnalyzer(const InstanceInfo& info);
-  
+
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
   void ProcessMidiMsg(const IMidiMsg& msg) override;
   void OnReset() override;
