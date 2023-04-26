@@ -114,6 +114,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\int\</IntDir>
     <LinkIncremental />
+    <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
+    <threading-MKL-static-win-x64>intel</threading-MKL-static-win-x64>
+    <interface-MKL-static-win-x64>lp64</interface-MKL-static-win-x64>
+    <linkage-IPP-static-win-x64>static</linkage-IPP-static-win-x64>
+    <threading-IPP-static-win-x64>sequential</threading-IPP-static-win-x64>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\</OutDir>
@@ -163,6 +168,7 @@
       <PreprocessorDefinitions>$(APP_DEFS);$(DEBUG_DEFS);$(EXTRA_DEBUG_DEFS);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(APP_INC_PATHS);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(APP_LIBS);%(AdditionalDependencies)</AdditionalDependencies>
@@ -339,10 +345,22 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Web.WebView2.1.0.1587.40\build\native\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Web.WebView2.1.0.1587.40\build\native\Microsoft.Web.WebView2.targets'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.230202.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.230202.1\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+    <Error Condition="!Exists('..\packages\intelmkl.static.win-x64.2023.1.0.46356\build\native\intelmkl.static.win-x64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\intelmkl.static.win-x64.2023.1.0.46356\build\native\intelmkl.static.win-x64.targets'))" />
+    <Error Condition="!Exists('..\packages\inteltbb.redist.win.2021.9.0.43574\build\native\inteltbb.redist.win.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\inteltbb.redist.win.2021.9.0.43574\build\native\inteltbb.redist.win.targets'))" />
+    <Error Condition="!Exists('..\packages\inteltbb.devel.win.2021.9.0.43574\build\native\inteltbb.devel.win.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\inteltbb.devel.win.2021.9.0.43574\build\native\inteltbb.devel.win.targets'))" />
+    <Error Condition="!Exists('..\packages\intelipp.static.win-x64.2021.8.0.46353\build\native\intelipp.static.win-x64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\intelipp.static.win-x64.2021.8.0.46353\build\native\intelipp.static.win-x64.targets'))" />
+    <Error Condition="!Exists('..\packages\intelopenmp.redist.win.2023.1.0.46319\build\native\intelopenmp.redist.win.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\intelopenmp.redist.win.2023.1.0.46319\build\native\intelopenmp.redist.win.targets'))" />
+    <Error Condition="!Exists('..\packages\intelopenmp.devel.win.2023.1.0.46319\build\native\intelopenmp.devel.win.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\intelopenmp.devel.win.2023.1.0.46319\build\native\intelopenmp.devel.win.targets'))" />
   </Target>
   <Import Project="..\packages\Microsoft.Web.WebView2.1.0.1587.40\build\native\Microsoft.Web.WebView2.targets" Condition="Exists('..\packages\Microsoft.Web.WebView2.1.0.1587.40\build\native\Microsoft.Web.WebView2.targets')" />
   <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.230202.1\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.230202.1\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
   <PropertyGroup>
     <WebView2LoaderPreference>Static</WebView2LoaderPreference>
   </PropertyGroup>
+  <Import Project="..\packages\intelmkl.static.win-x64.2023.1.0.46356\build\native\intelmkl.static.win-x64.targets" Condition="Exists('..\packages\intelmkl.static.win-x64.2023.1.0.46356\build\native\intelmkl.static.win-x64.targets')" />
+  <Import Project="..\packages\inteltbb.redist.win.2021.9.0.43574\build\native\inteltbb.redist.win.targets" Condition="Exists('..\packages\inteltbb.redist.win.2021.9.0.43574\build\native\inteltbb.redist.win.targets')" />
+  <Import Project="..\packages\inteltbb.devel.win.2021.9.0.43574\build\native\inteltbb.devel.win.targets" Condition="Exists('..\packages\inteltbb.devel.win.2021.9.0.43574\build\native\inteltbb.devel.win.targets')" />
+  <Import Project="..\packages\intelipp.static.win-x64.2021.8.0.46353\build\native\intelipp.static.win-x64.targets" Condition="Exists('..\packages\intelipp.static.win-x64.2021.8.0.46353\build\native\intelipp.static.win-x64.targets')" />
+  <Import Project="..\packages\intelopenmp.redist.win.2023.1.0.46319\build\native\intelopenmp.redist.win.targets" Condition="Exists('..\packages\intelopenmp.redist.win.2023.1.0.46319\build\native\intelopenmp.redist.win.targets')" />
+  <Import Project="..\packages\intelopenmp.devel.win.2023.1.0.46319\build\native\intelopenmp.devel.win.targets" Condition="Exists('..\packages\intelopenmp.devel.win.2023.1.0.46319\build\native\intelopenmp.devel.win.targets')" />
 </Project>

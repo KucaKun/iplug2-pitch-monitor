@@ -159,6 +159,7 @@
     <ClInclude Include="..\..\..\IPlug\Extras\WebView\IPlugWebView.h">
       <Filter>IPlug\Extras\WebView</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\IPlug\ISender.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">
@@ -210,5 +211,8 @@
     <Image Include="..\resources\PitchAnalyzer.ico">
       <Filter>resources</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natvis" />
   </ItemGroup>
 </Project>
