@@ -1,18 +1,14 @@
 // FROM DELEGATE
 
 function SPVFD(paramIdx, val) {
-  console.log("paramIdx: " + paramIdx + " value:" + val);
-  points.push({
-    x: width,
-    y: val
-  })
-  if (points.length > width) {
-    points.shift();
-  }
+  // console.log("paramIdx: " + paramIdx + " value:" + val);
+  OnParamChange(paramIdx, val);
 }
 
 function SCVFD(ctrlTag, val) {
-  console.log("SCVFD ctrlTag: " + ctrlTag + " value:" + val);
+  // console.log("SCVFD ctrlTag: " + ctrlTag + " value:" + val);
+  OnControlChange(ctrlTag, val);
+
 }
 
 function SCMFD(ctrlTag, msgTag, msg) {
@@ -95,6 +91,24 @@ function SPVFUI(paramIdx, value) {
   IPlugSendMsg(message);
 }
 
+function OnParamChange(param, value) {
+  if (param == 0) {
+
+  }
+}
+
+function OnControlChange(ctrlTag, value) {
+  if (ctrlTag == 0) {
+    document.points.push({
+      x: document.width,
+      y: value
+    })
+    console.log(points.length)
+    // if (document.points.length > width) {
+    //   points.shift();
+    // }
+  }
+}
 
 function main() {
   NOTE_NAMES = {
@@ -144,11 +158,14 @@ function main() {
   // get canvas context and set initial variables
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
+  const width = canvas.width
+  document.width = width;
+  const height = canvas.height
+  document.height = height;
+  document.points = testPoints(width);
+
   const radius = 4;
-  const points = testPoints(width);
-  const speed = 1;
+  const speed = 1 / 2;
 
   function noteColor(goodness) {
     return `rgb(${Math.floor(255 - 255*goodness)}, ${Math.floor(255*goodness)}, 9)`
@@ -199,12 +216,12 @@ function main() {
     }
 
     // draw points
-    for (let i = 0; i < points.length; i++) {
+    for (let i = 0; i < document.points.length; i++) {
 
-      let freq = points[i]["y"];
-      ctx.fillStyle = noteColor(i / points.length)
-      ctx.fillRect(points[i]["x"], freq_to_y_position(freq) - radius / 2, radius, radius);
-      points[i].x -= speed;
+      let freq = document.points[i]["y"];
+      ctx.fillStyle = noteColor(i / document.points.length)
+      ctx.fillRect(document.points[i]["x"], freq_to_y_position(freq) - radius / 2, radius, radius);
+      document.points[i].x -= speed;
     }
 
     requestAnimationFrame(animate);
