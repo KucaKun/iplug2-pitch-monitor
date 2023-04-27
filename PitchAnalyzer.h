@@ -1,10 +1,17 @@
 #pragma once
-
+//iplug
 #include "IPlug_include_in_plug_hdr.h"
+#include "IPlugAPP_host.h"
+
+//intel
 #include "mkl.h"
 #include "ipps.h"
+#include "ippvm.h"
+
+//cpp
 #include "float.h"
 #include <complex>
+#include <semaphore>
 using namespace iplug;
 
 const int kNumPresets = 3;
@@ -39,13 +46,16 @@ public:
     void OnParamChange(int paramIdx) override;
 
 private:
+    IPlugAPPHost* mPAPPHost = nullptr;
+    DFTI_DESCRIPTOR_HANDLE hand;
     MKL_LONG fft(Ipp64fc* x);
     double harmonic_product_spectrum(sample* x);
-
-    DFTI_DESCRIPTOR_HANDLE hand;
+    void PlotOnUi(int plotNum, sample* data, int size);
     float mLastPeak = 0.;
     double mLastFreq = 0.;
     int lastSentPlotIndex = 0;
-    sample mLastPlot[APP_SIGNAL_VECTOR_SIZE / 2];
+    int sentPlotNum = 0;
     double FREQ_BINS[APP_SIGNAL_VECTOR_SIZE];
+    std::binary_semaphore lock{ 0 };
+    std::map<int, sample*> plots;
 };

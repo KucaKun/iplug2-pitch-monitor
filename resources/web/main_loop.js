@@ -1,6 +1,5 @@
 function main() {
     function animate() {
-
         ctx.clearRect(0, 0, width, height);
 
         // draw plot lines
@@ -31,37 +30,44 @@ function main() {
         }
 
         // draw last freq points
-        for (let i = 0; i < document.points.length; i++) {
+        let radius = 4
+        for (let i = 0; i < points.length; i++) {
 
-            let freq = document.points[i]["y"];
-            ctx.fillStyle = noteColor(i / document.points.length)
-            ctx.fillRect(document.points[i]["x"], freq_to_y_position(freq) - radius / 2, radius, radius);
-            document.points[i].x -= speed;
+            let freq = points[i]["y"];
+            ctx.fillStyle = noteColor(i / points.length)
+            ctx.fillRect(points[i]["x"], freq_to_y_position(freq) - radius / 2, radius, radius);
+            points[i].x -= speed;
         }
 
-        // draw fft plot points
+        // draw plot points
         ctx.beginPath();
-        let move = 10;
-        let zero_level = 200;
-        let pos = (move, zero_level)
-        let max = Math.max(document.fft)
-        for (let i = 0; i < document.fft.length; i++) {
+        let move = width / plot.length;
+        let zero_level = height / 2;
+        let maximum = Math.max(...plot)
+        let minimum = Math.min(...plot)
+        let range = maximum - minimum;
+        let normalize = (x) => {
+            return (x / range) * zero_level
+        };
+        let value = normalize(plot[0])
+        let pos = [move, zero_level - value]
+        for (let i = 1; i < plot.length; i++) {
             // line
             ctx.moveTo(pos[0], pos[1]);
-            let value = document.fft[i] / max * 100; //normalize to pixels
-            pos = (pos[0] + move, zero_level - value)
+            let value = normalize(plot[i]);
+            pos = [pos[0] + move, zero_level - value]
             ctx.lineTo(pos[0], pos[1])
 
             // point
             ctx.fillStyle = "rgb(159,159,150)"
-            ctx.fillRect(pos[0], pos[1], radius, radius);
+            ctx.fillRect(pos[0] - 1, pos[1] - 1, 2, 2);
         }
+        ctx.strokeStyle = "rgb(159,159,150)"
         ctx.stroke()
 
 
         requestAnimationFrame(animate);
     }
-    define_globals()
     animate();
 }
 
@@ -72,12 +78,22 @@ function OnParamChange(param, value) {
 }
 
 function OnControlChange(ctrlTag, value) {
+
     if (ctrlTag == 0) {
-        document.points.push({
-            x: document.width,
+        print("freq: " + value, 0, 50);
+        points.push({
+            x: width,
             y: value
         })
     } else {
-        document.fft[ctrlTag - 1] = value
+        print("plot1 x: " + ctrlTag + " y: " + value, 1, 200);
+        plot[ctrlTag - 1024] = value
+    }
+}
+
+function OnMessage(msgTag, decodedData) {
+    if (msgTag == 0) {
+        console.log(decodedData)
+        print(decodedData, 2, 400)
     }
 }
