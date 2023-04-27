@@ -51,6 +51,7 @@
 #define APP_COPY_AUV3 0
 
 #define APP_SIGNAL_VECTOR_SIZE 2048
+#define FFT_SIZE APP_SIGNAL_VECTOR_SIZE/2
 #define NUM_HARMONIC_PROD 3
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
