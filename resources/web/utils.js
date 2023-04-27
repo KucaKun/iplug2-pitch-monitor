@@ -22,9 +22,12 @@ function testPoints(count) {
     return points;
 }
 
-function print(text) {
-    document.infos.push(Math.floor(Date.now()) + " " + text)
-    if (document.infos.length > 50) {
-        document.infos.shift();
+function print(text, category, pos = 100) {
+    infos[category].push({
+        "pos": pos,
+        "text": Math.floor(Date.now()) % 10000 + " " + text
+    })
+    if (infos[category].length > 50) {
+        infos[category].shift();
     }
 }
