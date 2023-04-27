@@ -1,14 +1,11 @@
 // FROM DELEGATE
 
 function SPVFD(paramIdx, val) {
-    // console.log("paramIdx: " + paramIdx + " value:" + val);
     OnParamChange(paramIdx, val);
 }
 
 function SCVFD(ctrlTag, val) {
-    print("SCVFD ctrlTag: " + ctrlTag + " value:" + val);
     OnControlChange(ctrlTag, val);
-
 }
 
 function SCMFD(ctrlTag, msgTag, msg) {
@@ -17,8 +14,9 @@ function SCMFD(ctrlTag, msgTag, msg) {
 }
 
 function SAMFD(msgTag, dataSize, msg) {
-    //  var decodedData = window.atob(msg);
+    var decodedData = window.atob(msg);
     console.log("SAMFD msgTag:" + msgTag + " msg:" + msg);
+    OnMessage(msgTag, decodedData);
 }
 
 function SMMFD(statusByte, dataByte1, dataByte2) {
