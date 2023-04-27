@@ -5,14 +5,6 @@ function main() {
 
         // draw plot lines
         for (let i = 0; i < NOTE_COUNT; i++) {
-            // vertical lines
-            // ctx.beginPath();
-            // let x = i * width/10;
-            // ctx.strokeStyle = "rgb(40,20,30)"
-            // ctx.moveTo(x, 0);
-            // ctx.lineTo(x, height);
-            // ctx.stroke();
-
             // horizontal lines
             ctx.beginPath()
             let y = freq_to_y_position(Object.values(NOTE_NAMES)[i])
