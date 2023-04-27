@@ -26,8 +26,16 @@ function main() {
             // draw info between lines
             ctx.font = "13px Arial"
             ctx.fillStyle = "rgb(190,0,30)"
-            let text = document.infos[document.infos.length - 1]
-            ctx.fillText(text, 100, y - 3);
+            for (let category = 0; category < infos.length; category++) {
+                if (infos[category].length) {
+                    let last_info = infos[category][infos[category].length - 1]
+                    ctx.fillText(
+                        last_info["text"],
+                        last_info["pos"], //x
+                        y - 3 //y
+                    );
+                }
+            }
         }
 
         // draw last freq points
