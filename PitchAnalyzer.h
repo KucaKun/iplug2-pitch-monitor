@@ -1,17 +1,21 @@
 #pragma once
+
+//cpp
+#include "float.h"
+#include <complex>
+#include <semaphore>
+
 //iplug
 #include "IPlug_include_in_plug_hdr.h"
 #include "IPlugAPP_host.h"
+#include "circbuf.h"
 
 //intel
 #include "mkl.h"
 #include "ipps.h"
 #include "ippvm.h"
 
-//cpp
-#include "float.h"
-#include <complex>
-#include <semaphore>
+//my
 using namespace iplug;
 
 const int kNumPresets = 3;
@@ -32,7 +36,6 @@ enum EControlTags {
     kCtrlTagMeter = 0,
 };
 
-typedef std::complex<double> Complex;
 class PitchAnalyzer final : public Plugin {
 public:
     PitchAnalyzer(const InstanceInfo& info);
@@ -54,8 +57,7 @@ private:
     double mLastFreq = 0.;
     int lastSentPlotIndex = 0;
     int sentPlotNum = 0;
-    double FREQ_BINS[APP_SIGNAL_VECTOR_SIZE];
-    std::vector<sample> buffer;
+    WDL_TypedCircBuf<sample> buffer;
     std::binary_semaphore lock{ 0 };
     std::map<int, sample*> plots;
 };

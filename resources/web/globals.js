@@ -47,6 +47,7 @@ function define_globals() {
     }
     NOTE_COUNT = Object.keys(NOTE_NAMES).length
     SAMPLE_RATE = 96000
+    BUFFER_SIZE = 2048
     // get canvas context and set initial variables
     points = testPoints(width);
     infos = Array(1024)
@@ -58,7 +59,7 @@ function define_globals() {
     fft_input_size = 512
     fft_freqs = []
     for (i = 0; i < fft_input_size; i++) {
-        fft_freqs.push(i * SAMPLE_RATE / fft_input_size)
+        fft_freqs.push(i * SAMPLE_RATE / BUFFER_SIZE)
     }
 
     speed = 1 / 2;

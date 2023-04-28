@@ -14,24 +14,35 @@ PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
 #endif
         EnableScroll(false);
     };
-    for (int i = 0; i < APP_SIGNAL_VECTOR_SIZE; i++) {
-        FREQ_BINS[i] = i * GetSampleRate() / BUFFER_SIZE;
-    }
+    buffer.SetSize(BUFFER_SIZE);
 
 }
 MKL_LONG PitchAnalyzer::fft(sample* x) {
     Ipp64fc fft_x[BUFFER_SIZE];
     MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, BUFFER_SIZE);
 
-    ippsWinBlackman_64fc_I(fft_x, BUFFER_SIZE, -0.16);
+    // remove mean from signal
+    Ipp64fc mean;
+    ippsMean_64fc(fft_x, BUFFER_SIZE, &mean);
+    ippsSubC_64fc_I(mean, fft_x, BUFFER_SIZE);
 
+    // Windowing function
+    ippsWinKaiser_64fc_I(fft_x, BUFFER_SIZE, 100);
+
+    // FFT
     status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, BUFFER_SIZE);
     status = DftiCommitDescriptor(hand);
     status = DftiComputeForward(hand, fft_x);
     status = DftiFreeDescriptor(&hand);
 
+    // Magnitudes
     ippsReal_64fc(fft_x, x, FFT_SIZE);
     ippsAbs_64f_I(x, FFT_SIZE);
+    ippsLn_64f_I(x, FFT_SIZE);
+
+    sample mean_after;
+    ippsMean_64f(x, BUFFER_SIZE, &mean_after);
+    ippsSubC_64f_I(mean_after, x, BUFFER_SIZE);
 
     return status;
 }
@@ -41,7 +52,6 @@ double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
     auto status = fft(x);
 
     PlotOnUi(0, x, FFT_SIZE);
-
 
     /* Compute an HPS */
     sample y[HARMONIC_SMALLEST_LENGTH];
@@ -58,18 +68,19 @@ double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
     }
 
     /* Compute frequency */
-    int max_y_index = cblas_icamax(HARMONIC_SMALLEST_LENGTH, y, 1);
-    return FREQ_BINS[max_y_index];
+    int max_y_index = cblas_idamax(HARMONIC_SMALLEST_LENGTH, y, 1);
+    // i_interp = parabolic(hps, i_peak)[0]
+    double freq = max_y_index * GetSampleRate() / BUFFER_SIZE;
+    return freq;
 }
 
 void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames) {
-    for (int i = 0; i < nFrames; i++) {
-        buffer.push_back(inputs[0][i]);
-        if (buffer.size() == BUFFER_SIZE) {
-            mLastFreq = harmonic_product_spectrum(buffer.data());
-            buffer.clear();
-            break;
-        }
+    buffer.Add(inputs[0], nFrames);
+    if (buffer.NbInBuf() == BUFFER_SIZE) {
+        sample x[BUFFER_SIZE];
+        buffer.Get(x, BUFFER_SIZE);
+        buffer.Add(x, BUFFER_SIZE);
+        mLastFreq = harmonic_product_spectrum(x);
     }
 }
 

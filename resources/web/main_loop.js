@@ -83,7 +83,7 @@ function OnParamChange(param, value) {
 function OnControlChange(ctrlTag, value) {
 
     if (ctrlTag == 0) {
-        // print("freq: " + value, 0, 50);
+        print("freq: " + value, 0, 50);
         points.push({
             x: width,
             y: value
