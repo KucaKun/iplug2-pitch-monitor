@@ -33,7 +33,6 @@ enum EControlTags {
 };
 
 typedef std::complex<double> Complex;
-
 class PitchAnalyzer final : public Plugin {
 public:
     PitchAnalyzer(const InstanceInfo& info);
@@ -48,14 +47,15 @@ public:
 private:
     IPlugAPPHost* mPAPPHost = nullptr;
     DFTI_DESCRIPTOR_HANDLE hand;
-    MKL_LONG fft(Ipp64fc* x);
+    MKL_LONG fft(sample* x);
     double harmonic_product_spectrum(sample* x);
-    void PlotOnUi(int plotNum, sample* data, int size);
+    void PlotOnUi(int plotNum, sample* data, int count);
     float mLastPeak = 0.;
     double mLastFreq = 0.;
     int lastSentPlotIndex = 0;
     int sentPlotNum = 0;
     double FREQ_BINS[APP_SIGNAL_VECTOR_SIZE];
+    std::vector<sample> buffer;
     std::binary_semaphore lock{ 0 };
     std::map<int, sample*> plots;
 };

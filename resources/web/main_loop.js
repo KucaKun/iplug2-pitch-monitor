@@ -54,15 +54,18 @@ function main() {
         for (let i = 1; i < plot.length; i++) {
             // line
             ctx.moveTo(pos[0], pos[1]);
-            let value = normalize(plot[i]);
-            pos = [pos[0] + move, zero_level - value]
+            value = normalize(plot[i]);
+            let y = zero_level - value
+            let x = pos[0] + 1;
+            x = Math.log10(fft_freqs[i]) * width / Math.log10(SAMPLE_RATE / 2)
+            pos = [x, y]
             ctx.lineTo(pos[0], pos[1])
 
             // point
-            ctx.fillStyle = "rgb(159,159,150)"
+            ctx.fillStyle = "rgb(210,210,210)"
             ctx.fillRect(pos[0] - 1, pos[1] - 1, 2, 2);
         }
-        ctx.strokeStyle = "rgb(159,159,150)"
+        ctx.strokeStyle = "rgb(210,210,210)"
         ctx.stroke()
 
 
@@ -80,13 +83,13 @@ function OnParamChange(param, value) {
 function OnControlChange(ctrlTag, value) {
 
     if (ctrlTag == 0) {
-        print("freq: " + value, 0, 50);
+        // print("freq: " + value, 0, 50);
         points.push({
             x: width,
             y: value
         })
     } else {
-        print("plot1 x: " + ctrlTag + " y: " + value, 1, 200);
+        // print("plot1 x: " + ctrlTag + " y: " + value, 1, 200);
         plot[ctrlTag - 1024] = value
     }
 }

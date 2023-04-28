@@ -15,7 +15,7 @@
 
 #define SHARED_RESOURCES_SUBPATH "PitchAnalyzer"
 
-#define PLUG_CHANNEL_IO "2-2"
+#define PLUG_CHANNEL_IO "1-1"
 
 #define PLUG_LATENCY 0
 #define PLUG_TYPE 0
@@ -50,13 +50,14 @@
 #define APP_MULT 1
 #define APP_COPY_AUV3 0
 
-#define APP_SIGNAL_VECTOR_SIZE 2048
-#define FFT_SIZE APP_SIGNAL_VECTOR_SIZE/2
+#define APP_SIGNAL_VECTOR_SIZE 64
+#define BUFFER_SIZE 2048
+#define FFT_SIZE BUFFER_SIZE/2
 #define NUM_HARMONIC_PROD 3
+#define PLOT_SIZE 512
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
 constexpr int _const_ceil(float num) { return (static_cast<float>(static_cast<int>(num)) == num) ? static_cast<int>(num) : static_cast<int>(num) + ((num > 0) ? 1 : 0); }
-constexpr int h_s_l() { return _const_ceil(static_cast<float>(APP_SIGNAL_VECTOR_SIZE / 2) / static_cast<float>(NUM_HARMONIC_PROD)); }
+constexpr int h_s_l() { return _const_ceil(static_cast<float>(BUFFER_SIZE / 2) / static_cast<float>(NUM_HARMONIC_PROD)); }
 #endif
-// 683
 #define HARMONIC_SMALLEST_LENGTH h_s_l()

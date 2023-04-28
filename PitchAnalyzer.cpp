@@ -14,84 +14,63 @@ PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
 #endif
         EnableScroll(false);
     };
-    //sample x[APP_SIGNAL_VECTOR_SIZE];
     for (int i = 0; i < APP_SIGNAL_VECTOR_SIZE; i++) {
-        FREQ_BINS[i] = i * GetSampleRate() / APP_SIGNAL_VECTOR_SIZE;
-        //x[i] = i;
+        FREQ_BINS[i] = i * GetSampleRate() / BUFFER_SIZE;
     }
-    /*Ipp64fc fft_x[APP_SIGNAL_VECTOR_SIZE];
-    MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, APP_SIGNAL_VECTOR_SIZE);
-    status = fft(fft_x);*/
 
 }
-MKL_LONG PitchAnalyzer::fft(Ipp64fc* x) {
-    MKL_LONG status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, APP_SIGNAL_VECTOR_SIZE);
+MKL_LONG PitchAnalyzer::fft(sample* x) {
+    Ipp64fc fft_x[BUFFER_SIZE];
+    MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, BUFFER_SIZE);
+
+    ippsWinBlackman_64fc_I(fft_x, BUFFER_SIZE, -0.16);
+
+    status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, BUFFER_SIZE);
     status = DftiCommitDescriptor(hand);
-    status = DftiComputeForward(hand, x);
+    status = DftiComputeForward(hand, fft_x);
     status = DftiFreeDescriptor(&hand);
+
+    ippsReal_64fc(fft_x, x, FFT_SIZE);
+    ippsAbs_64f_I(x, FFT_SIZE);
+
     return status;
 }
 double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
-    /* Convert to imaginary */
-    Ipp64fc fft_x[APP_SIGNAL_VECTOR_SIZE];
-    MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, APP_SIGNAL_VECTOR_SIZE);
-    //ippsWinBlackman_64fc_I(fft_x, APP_SIGNAL_VECTOR_SIZE, -0.16);
 
     /* Compute an FFT */
-    status = fft(fft_x);
-    sample fft_mag[FFT_SIZE];
-    //ippsMagnitude_64fc(fft_x, fft_mag, APP_SIGNAL_VECTOR_SIZE);
-    ippsReal_64fc(fft_x, fft_mag, FFT_SIZE);
-    ippsAbs_64f_I(fft_mag, FFT_SIZE);
+    auto status = fft(x);
 
-    /*# because we are using half of FFT spectrum.
-    s_mag = np.abs(sp) * 2 / np.sum(win)
-    # Convert to dBFS
-    s_dbfs = 20 * np.log10(s_mag / ref)*/
-    sample dbfs[FFT_SIZE];
-    ippsMulC_64f_I(2., fft_mag, FFT_SIZE);
-    ippsLog10_64f_A26(fft_mag, dbfs, FFT_SIZE);
-    ippsMulC_64f_I(20., dbfs, FFT_SIZE);
-    for (int i = 0; i < FFT_SIZE; i++) {
-        if (isinf(dbfs[i])) {
-            dbfs[i] = DBL_MAX;
-        }
-    }
+    PlotOnUi(0, x, FFT_SIZE);
 
-    /* Compute frequency */
-    int max_y_index = cblas_icamax(APP_SIGNAL_VECTOR_SIZE, dbfs, 1);
-    return FREQ_BINS[max_y_index];
 
     /* Compute an HPS */
     sample y[HARMONIC_SMALLEST_LENGTH];
-    memcpy(y, fft_mag, HARMONIC_SMALLEST_LENGTH * sizeof(sample)); // y = mag[:smallestLength].copy()
+    memcpy(y, x, HARMONIC_SMALLEST_LENGTH * sizeof(sample)); // y = mag[:smallestLength].copy()
     for (int prod_i = 2; prod_i < NUM_HARMONIC_PROD + 1; prod_i++) {
         // multiply by every second, every third ... every num_harmonic_prod+1
         // y *= mag[::prod_i][:smallestLength]
         for (int i = 0; i < HARMONIC_SMALLEST_LENGTH; i++) {
-            y[i] *= fft_mag[i * prod_i];
+            y[i] *= x[i * prod_i];
             if (isinf(y[i])) {
                 y[i] = DBL_MAX;
             }
         }
     }
+
+    /* Compute frequency */
+    int max_y_index = cblas_icamax(HARMONIC_SMALLEST_LENGTH, y, 1);
+    return FREQ_BINS[max_y_index];
 }
 
 void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames) {
-    sample x[APP_SIGNAL_VECTOR_SIZE];
-    auto nanCtr = 0;
-    for (int i = 0; i < APP_SIGNAL_VECTOR_SIZE; i++) {
-        if (isnan(inputs[0][i])) {
-            x[i] = 0;
-            nanCtr += 1;
-        }
-        else {
-            x[i] = inputs[0][i];
+    for (int i = 0; i < nFrames; i++) {
+        buffer.push_back(inputs[0][i]);
+        if (buffer.size() == BUFFER_SIZE) {
+            mLastFreq = harmonic_product_spectrum(buffer.data());
+            buffer.clear();
+            break;
         }
     }
-    PlotOnUi(0, x, sizeof(x));
-
-    mLastFreq = harmonic_product_spectrum(x);
 }
 
 void PitchAnalyzer::OnReset() {}
@@ -103,12 +82,12 @@ void PitchAnalyzer::OnIdle() {
 
     //sending plots
     if (plots.contains(sentPlotNum)) {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < PLOT_SIZE; i++) {
             auto ctrl = lastSentPlotIndex + (sentPlotNum + 1) * 1024;
             lock.acquire();
             SendControlValueFromDelegate(ctrl, plots[sentPlotNum][lastSentPlotIndex]);
             lock.release();
-            if (++lastSentPlotIndex == APP_SIGNAL_VECTOR_SIZE) {
+            if (++lastSentPlotIndex == PLOT_SIZE) {
                 lastSentPlotIndex = 0;
                 if (++sentPlotNum == plots.size()) {
                     sentPlotNum = 0;
@@ -127,14 +106,17 @@ void PitchAnalyzer::ProcessMidiMsg(const IMidiMsg& msg) {
     msg.PrintMsg();
     SendMidiMsg(msg);
 }
-void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int size) {
-    lock.try_acquire();
+
+void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
     if (!plots.contains(plotNum)) {
-        plots[plotNum] = new sample[size];
+        plots[plotNum] = new sample[PLOT_SIZE];
     }
-    for (int i = 0; i < APP_SIGNAL_VECTOR_SIZE; i++) {
-        plots[plotNum][i] = i;
+    lock.try_acquire();
+    int step = 1;
+    if (count > PLOT_SIZE)
+        step = count / PLOT_SIZE;
+    for (int i = 0; i < PLOT_SIZE; i++) {
+        plots[plotNum][i] = data[i * step];
     }
     lock.release();
-    //memcpy(plots[plotNum], data, size);
 }
