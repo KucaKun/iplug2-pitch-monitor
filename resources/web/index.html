@@ -5,50 +5,16 @@
   <meta charset="utf-8" />
   <style type="text/css">
     * {
+      margin: 0;
+      padding: 0;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
     }
-
-    p,
-    h1 {
-      pointer-events: none;
-    }
-
-    .left {
-      width: 50%;
-      position: absolute;
-      left: 0;
-      display: table-cell;
-      vertical-align: middle;
-    }
-
-    .left span,
-    .left input {
-      vertical-align: middle;
-    }
-
-    .right {
-      width: 50%;
-      position: absolute;
-      right: 0;
-      display: table-cell;
-      vertical-align: middle;
-    }
-
-    .right span {
-      vertical-align: middle;
-    }
-
-    .right input {
-      vertical-align: baseline;
-    }
-
-    button {
-      display: block;
-    }
   </style>
 
+  <script src="colors.js"></script>
   <script src="globals.js"></script>
+  <script src="register_events.js"></script>
   <script src="utils.js"></script>
   <script src="backend.js"></script>
   <script src="main_loop.js"></script>
@@ -58,7 +24,7 @@
 <body>
   <!--<h1>IPlugWebView</h1>-->
   <div>
-    <canvas id="canvas" width="800" height="800"></canvas>
+    <canvas id="canvas" width="990" height="800"></canvas>
   </div>
 </body>
 
