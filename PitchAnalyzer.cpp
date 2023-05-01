@@ -17,60 +17,70 @@ PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
     buffer.SetSize(BUFFER_SIZE);
 
 }
-MKL_LONG PitchAnalyzer::fft(sample* x) {
-    Ipp64fc fft_x[BUFFER_SIZE];
-    MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, BUFFER_SIZE);
+
+// INTEL FFT IN PLACE
+MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
+    Ipp64fc* fft_x = (Ipp64fc*)malloc(buffer_size * sizeof(Ipp64fc));
+    if (fft_x == NULL) {
+        return 1;
+    }
+    MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, buffer_size);
 
     // remove mean from signal
     Ipp64fc mean;
-    ippsMean_64fc(fft_x, BUFFER_SIZE, &mean);
-    ippsSubC_64fc_I(mean, fft_x, BUFFER_SIZE);
+    ippsMean_64fc(fft_x, buffer_size, &mean);
+    ippsSubC_64fc_I(mean, fft_x, buffer_size);
 
     // Windowing function
-    ippsWinKaiser_64fc_I(fft_x, BUFFER_SIZE, 100);
+    ippsWinKaiser_64fc_I(fft_x, buffer_size, 1);
 
     // FFT
-    status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, BUFFER_SIZE);
+    status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, buffer_size);
     status = DftiCommitDescriptor(hand);
     status = DftiComputeForward(hand, fft_x);
     status = DftiFreeDescriptor(&hand);
 
+    const int fft_size = buffer_size / 2;
     // Magnitudes
-    ippsReal_64fc(fft_x, x, FFT_SIZE);
-    ippsAbs_64f_I(x, FFT_SIZE);
-    ippsLn_64f_I(x, FFT_SIZE);
+    //ippsReal_64fc(fft_x, x, fft_size);
+    ippsMagnitude_64fc(fft_x, x, fft_size);
+    free(fft_x);
 
-    sample mean_after;
-    ippsMean_64f(x, BUFFER_SIZE, &mean_after);
-    ippsSubC_64f_I(mean_after, x, BUFFER_SIZE);
+    //ippsAbs_64f_I(x, fft_size);
+    //ippsLn_64f_I(x, fft_size);
+    //ippsAbs_64f_I(x, fft_size); // was minus, since we between 0 and 1
+
+    x[0] = 0; // dc component
 
     return status;
 }
-double PitchAnalyzer::harmonic_product_spectrum(sample* x) {
 
-    /* Compute an FFT */
-    auto status = fft(x);
+// Frequency detection taken from:
+// https://github.com/endolith/waveform_analysis/blob/master/waveform_analysis
+// thank you very much kind mister
 
-    PlotOnUi(0, x, FFT_SIZE);
 
-    /* Compute an HPS */
-    sample y[HARMONIC_SMALLEST_LENGTH];
-    memcpy(y, x, HARMONIC_SMALLEST_LENGTH * sizeof(sample)); // y = mag[:smallestLength].copy()
+/* Compute an HPS*/
+void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size) {
+    memcpy(hps_out, fft_x, size * sizeof(sample)); // y = mag[:smallestLength].copy()
     for (int prod_i = 2; prod_i < NUM_HARMONIC_PROD + 1; prod_i++) {
         // multiply by every second, every third ... every num_harmonic_prod+1
         // y *= mag[::prod_i][:smallestLength]
-        for (int i = 0; i < HARMONIC_SMALLEST_LENGTH; i++) {
-            y[i] *= x[i * prod_i];
-            if (isinf(y[i])) {
-                y[i] = DBL_MAX;
-            }
+        for (int i = 0; i < size; i++) {
+            hps_out[i] *= fft_x[i * prod_i]; // x is decimated
         }
     }
+}
 
-    /* Compute frequency */
-    int max_y_index = cblas_idamax(HARMONIC_SMALLEST_LENGTH, y, 1);
-    // i_interp = parabolic(hps, i_peak)[0]
-    double freq = max_y_index * GetSampleRate() / BUFFER_SIZE;
+/* Compute frequency from processed x with gaussian interpolation*/
+// src: http://www.add.ece.ufl.edu/4511/references/ImprovingFFTResoltuion.pdf
+double PitchAnalyzer::getFreq(sample* processed_x, int length) {
+    int max_index = cblas_idamax(length, processed_x, 1);
+    double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
+    double denominator = 2 * log(processed_x[max_index] * processed_x[max_index]) /
+        (processed_x[max_index - 1] * processed_x[max_index + 1]);
+    double dm = nominator / denominator;
+    double freq = (GetSampleRate() * (dm + max_index)) / BUFFER_SIZE;
     return freq;
 }
 
@@ -80,7 +90,14 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
         sample x[BUFFER_SIZE];
         buffer.Get(x, BUFFER_SIZE);
         buffer.Add(x, BUFFER_SIZE);
-        mLastFreq = harmonic_product_spectrum(x);
+
+        fft(x, BUFFER_SIZE);
+        mFftFreq = getFreq(x, FFT_SIZE);
+        PlotOnUi(0, x, FFT_SIZE);
+
+        sample hps[HARMONIC_SMALLEST_LENGTH];
+        harmonic_product_spectrum(x, hps, HARMONIC_SMALLEST_LENGTH);
+        mHpsFreq = getFreq(hps, HARMONIC_SMALLEST_LENGTH);
     }
 }
 
@@ -89,7 +106,8 @@ void PitchAnalyzer::OnReset() {}
 bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) { return false; }
 
 void PitchAnalyzer::OnIdle() {
-    SendControlValueFromDelegate(0, mLastFreq);
+    SendControlValueFromDelegate(0, mHpsFreq);
+    SendControlValueFromDelegate(1, mFftFreq);
 
     //sending plots
     if (plots.contains(sentPlotNum)) {

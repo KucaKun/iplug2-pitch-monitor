@@ -50,11 +50,13 @@ public:
 private:
     IPlugAPPHost* mPAPPHost = nullptr;
     DFTI_DESCRIPTOR_HANDLE hand;
-    MKL_LONG fft(sample* x);
-    double harmonic_product_spectrum(sample* x);
+    MKL_LONG fft(sample* x, const int buffer_size);
+    void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
+    double getFreq(sample* processed_x, int length);
     void PlotOnUi(int plotNum, sample* data, int count);
     float mLastPeak = 0.;
-    double mLastFreq = 0.;
+    double mHpsFreq = 0.;
+    double mFftFreq = 0.;
     int lastSentPlotIndex = 0;
     int sentPlotNum = 0;
     WDL_TypedCircBuf<sample> buffer;
