@@ -16,6 +16,8 @@
 #include "ippvm.h"
 
 //my
+#include "circ.h"
+
 using namespace iplug;
 
 const int kNumPresets = 3;
@@ -54,6 +56,7 @@ private:
     void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
     double getFreq(sample* processed_x, int length);
     void PlotOnUi(int plotNum, sample* data, int count);
+    int tests();
     float mLastPeak = 0.;
     double mHpsFreq = 0.;
     double mFftFreq = 0.;

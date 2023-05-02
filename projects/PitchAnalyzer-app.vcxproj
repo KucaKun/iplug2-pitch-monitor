@@ -296,6 +296,7 @@
     <ClInclude Include="..\..\..\IPlug\IPlug_include_in_plug_hdr.h" />
     <ClInclude Include="..\..\..\IPlug\IPlug_include_in_plug_src.h" />
     <ClInclude Include="..\..\..\IPlug\ISender.h" />
+    <ClInclude Include="..\circ.h" />
     <ClInclude Include="..\PitchAnalyzer.h" />
     <ClInclude Include="..\resources\resource.h" />
   </ItemGroup>
@@ -318,6 +319,7 @@
     <ClCompile Include="..\..\..\IPlug\IPlugPluginBase.cpp" />
     <ClCompile Include="..\..\..\IPlug\IPlugProcessor.cpp" />
     <ClCompile Include="..\..\..\IPlug\IPlugTimer.cpp" />
+    <ClCompile Include="..\circ.cpp" />
     <ClCompile Include="..\PitchAnalyzer.cpp" />
   </ItemGroup>
   <ItemGroup>
