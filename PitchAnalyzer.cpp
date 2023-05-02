@@ -144,12 +144,10 @@ void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
         plots[plotNum] = new sample[PLOT_SIZE];
     }
     lock.try_acquire();
-    int step = 1;
-    if (count > PLOT_SIZE)
-        step = count / PLOT_SIZE;
-    for (int i = 0; i < PLOT_SIZE; i++) {
-        plots[plotNum][i] = data[i * step];
-    }
+    int amount = count;
+    if (amount > 512)
+        amount = 512;
+    memcpy(plots[plotNum], data, amount * sizeof(sample));
     lock.release();
 }
 int PitchAnalyzer::tests() {
