@@ -35,7 +35,7 @@ MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
     ippsSubC_64fc_I(mean, fft_x, buffer_size);
 
     // Windowing function
-    ippsWinKaiser_64fc_I(fft_x, buffer_size, 1);
+    ippsWinHamming_64fc_I(fft_x, buffer_size);
 
     // FFT
     status = DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_COMPLEX, 1, buffer_size);
