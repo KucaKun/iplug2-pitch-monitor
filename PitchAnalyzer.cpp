@@ -15,7 +15,10 @@ PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
         EnableScroll(false);
     };
     buffer.SetSize(BUFFER_SIZE);
-
+    if (tests() != 0) {
+        DBGMSG("TESTS FAILED");
+        exit(1);
+    }
 }
 
 // INTEL FFT IN PLACE
@@ -148,4 +151,42 @@ void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
         plots[plotNum][i] = data[i * step];
     }
     lock.release();
+}
+int PitchAnalyzer::tests() {
+
+    WDL_TypedCircBuf<sample> buffer;
+    buffer.SetSize(3);
+    // fill buffer
+    sample t[1] = { 2 };
+    sample t2[1] = { 3 };
+    buffer.Add(t, 1);
+    buffer.Add(t, 1);
+    buffer.Add(t2, 1);
+
+    // get first time and refill
+    sample r[3];
+    buffer.Get(r, 3);
+
+    // refill and get
+    buffer.Add(r, 3);
+    buffer.Add(t2, 1);
+
+    sample r2[3];
+    buffer.Get(r2, 3);
+    DBGMSG("%f | %f | %f", r[0], r[1], r[2]);
+    DBGMSG("%f | %f | %f", r2[0], r2[1], r2[2]);
+
+    CircBuf<sample> b(3);
+    b.add_elements(t, 1);
+    b.add_elements(t, 1);
+    b.add_elements(t2, 1);
+    sample* test;
+    test = b.get_buffer()->data();
+    DBGMSG("%f | %f | %f", test[0], test[1], test[2]);
+    b.add_elements(t2, 1);
+    DBGMSG("%f | %f | %f", test[0], test[1], test[2]);
+
+
+
+    return 0;
 }
