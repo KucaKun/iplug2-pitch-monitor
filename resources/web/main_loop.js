@@ -27,6 +27,9 @@ function main() {
             ctx.font = "13px Arial"
             ctx.fillStyle = "rgb(40,150,30)"
             ctx.fillText(Object.keys(NOTE_NAMES)[i], piano_width, y + 5);
+
+            // Note freq
+            ctx.fillText(Object.values(NOTE_NAMES)[i], piano_width + 60, y + 5);
         }
         // draw info between lines
         ctx.font = "13px Arial"
@@ -59,9 +62,7 @@ function main() {
             fft_freq_points[i].x -= speed;
         }
 
-        // Plot points
-        ctx.beginPath();
-        let move = piano_width / plot.length;
+        // Plot ffts
         let zero_level = height / 2;
         let maximum = 100
         let minimum = 0
@@ -69,28 +70,32 @@ function main() {
         let normalize = (t) => {
             return (t / range) * zero_level
         };
+        ctx.beginPath();
         let value = normalize(plot[0])
-        let pos = [move, zero_level - value]
-        for (let i = 1; i < plot.length; i++) {
+        ctx.moveTo(0, zero_level - value)
+        for (let x = 0; x < plot.length; x++) {
             // line
-            ctx.moveTo(pos[0], pos[1]);
-            value = normalize(plot[i]);
+            let value = normalize(plot[x]);
             let y = zero_level - value
-            let x = pos[0] + 1;
-            x = Math.log10(fft_freqs[i]) * piano_width / Math.log10(SAMPLE_RATE / 2)
-            pos = [x, y]
-            ctx.lineTo(pos[0], pos[1])
+            let log_x = (Math.log10(index_to_freq(x)) / Math.log10(SAMPLE_RATE / 2));
+            ctx.lineTo(log_x, y)
+            pos = [log_x, y]
 
             // point
-            ctx.fillStyle = "rgb(210,210,210)"
-            ctx.fillRect(pos[0] - 1, pos[1] - 1, 2, 2);
+            ctx.fillStyle = "rgb(210,100,130)"
+            ctx.fillRect(log_x - 1, y - 1, 2, 2);
 
-            ctx.fillStyle = "rgb(100,210,50)"
-            let freq = Object.values(NOTE_NAMES)[i]
-            ctx.fillRect(piano_width - normalize(plot[i]), freq_to_linear(freq), 2, 2);
+            // side plot
+            ctx.fillStyle = "rgb(210,100,50)"
+            let radius = 6;
+            ctx.fillRect(piano_width - normalize(plot[x]) - radius / 2, freq_to_linear(index_to_freq(x)) - radius / 2, radius, radius);
 
+            // 
+            ctx.font = "13px Arial"
+            ctx.fillStyle = "rgb(40,100,130)"
+            ctx.fillText(index_to_freq(x), piano_width - 60, freq_to_linear(index_to_freq(x)) + 5);
         }
-        ctx.strokeStyle = "rgb(210,210,210)"
+        ctx.strokeStyle = "rgb(0,0,0)"
         ctx.stroke()
 
 

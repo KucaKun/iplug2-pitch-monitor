@@ -11,6 +11,10 @@ function freq_to_linear(freq) {
     return height - val
 }
 
+function index_to_freq(index) {
+    return (SAMPLE_RATE * index) / BUFFER_SIZE;
+}
+
 function testPoints(count) {
     let points = [];
     for (let i = 0; i < count; i++) {

@@ -1,9 +1,6 @@
 function define_globals() {
-    canvas = document.getElementById("canvas");
-    ctx = canvas.getContext("2d");
-    width = canvas.width
-    piano_width = width * 0.8;
-    height = canvas.height
+    SAMPLE_RATE = 96000
+    BUFFER_SIZE = 8192
     NOTE_NAMES = {
         "C0": 16.35,
         "C#0/Db0": 17.32,
@@ -91,8 +88,11 @@ function define_globals() {
         "B6": 1975.53
     }
     NOTE_COUNT = Object.keys(NOTE_NAMES).length
-    SAMPLE_RATE = 96000
-    BUFFER_SIZE = 2048
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
+    width = canvas.width
+    piano_width = width * 0.8;
+    height = canvas.height
     hps_freq_points = [];
     fft_freq_points = [];
     infos = Array(1024)
