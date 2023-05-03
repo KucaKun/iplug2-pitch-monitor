@@ -118,7 +118,7 @@ function OnParamChange(param, value) {
 
 function OnControlChange(ctrlTag, value) {
 
-    if (ctrlTag == 0) {
+    if (ctrlTag == 0 && value > 0) {
         print("freq hps: " + value, 0, 50);
         hps_freq_points.push({
             x: piano_width,
@@ -127,17 +127,14 @@ function OnControlChange(ctrlTag, value) {
         if (hps_freq_points.length == plot.length) {
             hps_freq_points.shift()
         }
-    } else if (ctrlTag == 1) {
+    } else if (ctrlTag == 1 && value > 0) {
         print("freq fft: " + value, 0, 200);
-        if (value > 0) {
-
-            fft_freq_points.push({
-                x: piano_width,
-                y: value
-            })
-            if (fft_freq_points.length == plot.length) {
-                fft_freq_points.shift()
-            }
+        fft_freq_points.push({
+            x: piano_width,
+            y: value
+        })
+        if (fft_freq_points.length == plot.length) {
+            fft_freq_points.shift()
         }
     } else {
         plot[ctrlTag - 1024] = value
