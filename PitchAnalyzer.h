@@ -1,4 +1,5 @@
 #pragma once
+#include "IPlug_include_in_plug_hdr.h"
 
 //cpp
 #include "float.h"
@@ -6,7 +7,6 @@
 #include <semaphore>
 
 //iplug
-#include "IPlug_include_in_plug_hdr.h"
 #include "IPlugAPP_host.h"
 #include "circbuf.h"
 

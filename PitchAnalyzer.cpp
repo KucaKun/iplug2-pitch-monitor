@@ -30,9 +30,10 @@ MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
     MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, buffer_size);
 
     // remove mean from signal
-    Ipp64fc mean;
+    /*Ipp64fc mean;
     ippsMean_64fc(fft_x, buffer_size, &mean);
     ippsSubC_64fc_I(mean, fft_x, buffer_size);
+    */
 
     // Windowing function
     ippsWinHamming_64fc_I(fft_x, buffer_size);
@@ -82,7 +83,7 @@ double PitchAnalyzer::getFreq(sample* processed_x, int length) {
     double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
     double denominator = 2 * log(processed_x[max_index] * processed_x[max_index]) /
         (processed_x[max_index - 1] * processed_x[max_index + 1]);
-    double dm = nominator / denominator;
+    double dm = 0;//nominator / denominator;
     double freq = (GetSampleRate() * (dm + max_index)) / BUFFER_SIZE;
     return freq;
 }
@@ -92,7 +93,8 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
     if (buffer.NbInBuf() == BUFFER_SIZE) {
         sample x[BUFFER_SIZE];
         buffer.Get(x, BUFFER_SIZE);
-        buffer.Add(x, BUFFER_SIZE);
+        // shift right, works if nFrames is constant
+        buffer.Add(&x[nFrames], BUFFER_SIZE - nFrames);
 
         fft(x, BUFFER_SIZE);
         mFftFreq = getFreq(x, FFT_SIZE);
@@ -150,6 +152,7 @@ void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
     memcpy(plots[plotNum], data, amount * sizeof(sample));
     lock.release();
 }
+
 int PitchAnalyzer::tests() {
 
     WDL_TypedCircBuf<sample> buffer;
