@@ -57,6 +57,7 @@ private:
     DFTI_DESCRIPTOR_HANDLE hand;
     MKL_LONG fft(sample* x, const int buffer_size);
     void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
+    double auto_corr(sample* fft_x, const int size);
     double getFreq(sample* processed_x, int length, double mean);
     void PlotOnUi(int plotNum, sample* data, int count);
     int tests();

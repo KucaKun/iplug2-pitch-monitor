@@ -65,9 +65,44 @@ void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, co
         // multiply by every second, every third ... every num_harmonic_prod+1
         // y *= mag[::prod_i][:smallestLength]
         for (int i = 0; i < size; i++) {
-            hps_out[i] *= fft_x[i * prod_i]; // x is decimated
+            hps_out[i] += fft_x[i * prod_i]; // x is decimated
         }
     }
+}
+
+/* Auto correlation */
+double PitchAnalyzer::auto_corr(sample* fft_x, const int size) {
+    return 1.;
+    int buf_size = 0;
+    int corr_size = 2 * size;
+    Ipp8u* working_buffer;
+    IppEnum fun_cfg = (IppEnum)(ippAlgAuto | ippsNormB);
+    sample* corr = (sample*)malloc(corr_size * sizeof(sample));
+    if (corr == NULL) {
+        return -1.;
+    }
+    ippsAutoCorrNormGetBufferSize(size, size, ipp64f, fun_cfg, &buf_size);
+    working_buffer = ippsMalloc_8u(buf_size);
+    ippsAutoCorrNorm_64f(fft_x, size, corr, corr_size, fun_cfg, working_buffer);
+
+    // find valley
+    double d = 0;
+    int i = 0;
+    while (d <= 0 && ++i < corr_size) {
+        d = corr[i] - corr[i - 1];
+    }
+
+    // gaussian
+    int peak_after_valley = cblas_idamax(corr_size - i, corr + i, 1) + i;
+    double nominator = log(corr[peak_after_valley + 1] / corr[peak_after_valley - 1]);
+    double denominator = 2 * log(
+        (corr[peak_after_valley] * corr[peak_after_valley]) /
+        (corr[peak_after_valley - 1] * corr[peak_after_valley + 1])
+    );
+    double dm = nominator / denominator;
+    double i_interpolated = (dm + peak_after_valley);
+    free(corr);
+    return GetSampleRate() / i_interpolated;
 }
 
 /* Compute frequency from processed x with gaussian interpolation
@@ -76,7 +111,7 @@ void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, co
 */
 double PitchAnalyzer::getFreq(sample* processed_x, int length, double mean = 0) {
     int max_index = cblas_idamax(length, processed_x, 1);
-    if (processed_x[max_index] < mean / 2) {
+    if (processed_x[max_index] < mean / 2 && mean > 0) {
         return -1;
     }
     double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
@@ -98,6 +133,13 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 
         sample max;
         ippsMax_64f(x, BUFFER_SIZE, &max);
+        auto auto_corr_freq = auto_corr(x, BUFFER_SIZE);
+        if (auto_corr_freq > 0 && max > conf.sound_threshold) {
+            mHpsFreq = auto_corr_freq;
+        }
+        else {
+            mHpsFreq = -1;
+        }
 
         fft(x, BUFFER_SIZE);
         auto mean = x[0];
@@ -110,10 +152,16 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
         }
         x[0] = 0; // remove mean from signal for further calculations and plot
         PlotOnUi(0, x, FFT_SIZE);
+        //sample hps[HARMONIC_SMALLEST_LENGTH];
+        //harmonic_product_spectrum(x, hps, HARMONIC_SMALLEST_LENGTH);
 
-        sample hps[HARMONIC_SMALLEST_LENGTH];
-        harmonic_product_spectrum(x, hps, HARMONIC_SMALLEST_LENGTH);
-        mHpsFreq = getFreq(hps, HARMONIC_SMALLEST_LENGTH);
+        //auto new_hps_freq = getFreq(hps, HARMONIC_SMALLEST_LENGTH);
+        //if (new_hps_freq > 0 && max > conf.sound_threshold) {
+        //    mHpsFreq = new_hps_freq;
+        //}
+        //else {
+        //    mHpsFreq = -1;
+        //}
     }
 }
 
