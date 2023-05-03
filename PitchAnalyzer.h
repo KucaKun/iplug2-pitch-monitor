@@ -37,7 +37,10 @@ enum EMsgTags {
 enum EControlTags {
     kCtrlTagMeter = 0,
 };
-
+struct RuntimeSettings {
+    bool send_plots = false;
+    double sound_threshold = 0.07;
+};
 class PitchAnalyzer final : public Plugin {
 public:
     PitchAnalyzer(const InstanceInfo& info);
@@ -54,7 +57,7 @@ private:
     DFTI_DESCRIPTOR_HANDLE hand;
     MKL_LONG fft(sample* x, const int buffer_size);
     void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
-    double getFreq(sample* processed_x, int length);
+    double getFreq(sample* processed_x, int length, double mean);
     void PlotOnUi(int plotNum, sample* data, int count);
     int tests();
     float mLastPeak = 0.;
@@ -65,4 +68,5 @@ private:
     WDL_TypedCircBuf<sample> buffer;
     std::binary_semaphore lock{ 0 };
     std::map<int, sample*> plots;
+    RuntimeSettings conf;
 };

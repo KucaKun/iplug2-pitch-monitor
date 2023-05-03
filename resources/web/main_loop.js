@@ -29,17 +29,21 @@ function main() {
             ctx.fillText(Object.keys(NOTE_NAMES)[i], piano_width, y + 5);
 
             // Note freq
-            ctx.fillText(Object.values(NOTE_NAMES)[i], piano_width + 60, y + 5);
+            if (NOTE_FREQS_TEXTS) {
+                ctx.fillText(Object.values(NOTE_NAMES)[i], piano_width + 60, y + 5);
+            }
         }
         // draw info between lines
-        ctx.font = "13px Arial"
-        ctx.fillStyle = "rgb(190,0,30)"
-        for (let category = 0; category < infos.length; category++) {
-            let count = infos[category].length;
-            for (let i = 1; i <= count; i++) {
-                let y = freq_to_linear(Object.values(NOTE_NAMES)[i])
-                let info = infos[category][count - i] // go from the newest
-                ctx.fillText(info["text"], info["pos"], y + 5);
+        if (PRINT_INFOS) {
+            ctx.font = "13px Arial"
+            ctx.fillStyle = "rgb(190,0,30)"
+            for (let category = 0; category < infos.length; category++) {
+                let count = infos[category].length;
+                for (let i = 1; i <= count; i++) {
+                    let y = freq_to_linear(Object.values(NOTE_NAMES)[i])
+                    let info = infos[category][count - i] // go from the newest
+                    ctx.fillText(info["text"], info["pos"], y + 5);
+                }
             }
         }
 
@@ -53,14 +57,25 @@ function main() {
             ctx.fillRect(x, y, radius, radius);
             hps_freq_points[i].x -= speed;
         }
+        let last_pos = []
         for (let i = 0; i < fft_freq_points.length; i++) {
-            let x = fft_freq_points[i]["x"] - radius / 2
+            let x = fft_freq_points[i]["x"]
             let freq = fft_freq_points[i]["y"];
-            ctx.fillStyle = "blue"
-            let y = freq_to_linear(freq) - radius / 2
-            ctx.fillRect(x, y, radius, radius);
+            let y = freq_to_linear(freq)
+
+            // circle point is nicer
+            ctx.fillStyle = "blue";
+            fillCircle(x, y, radius / 2, ctx)
+            if (last_pos && Math.abs(last_pos[1] - y) < 100) {
+                ctx.beginPath()
+                ctx.moveTo(last_pos[0], last_pos[1])
+                ctx.quadraticCurveTo(x, y, x, y)
+                ctx.stroke()
+            }
+            last_pos = [x, y]
             fft_freq_points[i].x -= speed;
         }
+        ctx.strokeStyle = "rgba(12,23,230,0.4)"
 
         // Plot ffts
         let zero_level = height / 2;
@@ -70,33 +85,24 @@ function main() {
         let normalize = (t) => {
             return (t / range) * zero_level
         };
-        ctx.beginPath();
-        let value = normalize(plot[0])
-        ctx.moveTo(0, zero_level - value)
         for (let x = 0; x < plot.length; x++) {
             // line
             let value = normalize(plot[x]);
             let y = zero_level - value
             let log_x = (Math.log10(index_to_freq(x)) / Math.log10(SAMPLE_RATE / 2));
-            ctx.lineTo(log_x, y)
-            pos = [log_x, y]
-
-            // point
-            ctx.fillStyle = "rgb(210,100,130)"
-            ctx.fillRect(log_x - 1, y - 1, 2, 2);
 
             // side plot
-            ctx.fillStyle = "rgb(210,100,50)"
             let radius = 6;
+            ctx.fillStyle = "rgba(80,85,250,0.5)"
             ctx.fillRect(piano_width - normalize(plot[x]) - radius / 2, freq_to_linear(index_to_freq(x)) - radius / 2, radius, radius);
+            ctx.fillRect(piano_width - normalize(plot[x]) - radius / 2, freq_to_linear(index_to_freq(x)) - radius / 4, normalize(plot[x]), radius / 2);
 
-            // 
-            ctx.font = "13px Arial"
-            ctx.fillStyle = "rgb(40,100,130)"
-            ctx.fillText(index_to_freq(x), piano_width - 60, freq_to_linear(index_to_freq(x)) + 5);
+            if (FFT_FREQS_TEXTS) {
+                ctx.font = "13px Arial"
+                ctx.fillStyle = "rgb(40,100,130)"
+                ctx.fillText(index_to_freq(x), piano_width - 60, freq_to_linear(index_to_freq(x)) + 5);
+            }
         }
-        ctx.strokeStyle = "rgb(0,0,0)"
-        ctx.stroke()
 
 
         requestAnimationFrame(animate);
@@ -123,17 +129,17 @@ function OnControlChange(ctrlTag, value) {
         }
     } else if (ctrlTag == 1) {
         print("freq fft: " + value, 0, 200);
-        fft_freq_points.push({
-            x: piano_width,
-            y: value
-        })
-        if (fft_freq_points.length == plot.length) {
-            fft_freq_points.shift()
+        if (value > 0) {
+
+            fft_freq_points.push({
+                x: piano_width,
+                y: value
+            })
+            if (fft_freq_points.length == plot.length) {
+                fft_freq_points.shift()
+            }
         }
-
-
     } else {
-        // print("plot1 x: " + ctrlTag + " y: " + value, 1, 200);
         plot[ctrlTag - 1024] = value
     }
 }

@@ -50,8 +50,6 @@ MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
     ippsMagnitude_64fc(fft_x, x, fft_size);
     free(fft_x);
 
-    x[0] = 0; // dc component
-
     return status;
 }
 
@@ -72,10 +70,15 @@ void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, co
     }
 }
 
-/* Compute frequency from processed x with gaussian interpolation*/
-// src: http://www.add.ece.ufl.edu/4511/references/ImprovingFFTResoltuion.pdf
-double PitchAnalyzer::getFreq(sample* processed_x, int length) {
+/* Compute frequency from processed x with gaussian interpolation
+    If mean is given, frequency returned will be below 0 when signal size is lower than half of mean.
+    src: http://www.add.ece.ufl.edu/4511/references/ImprovingFFTResoltuion.pdf
+*/
+double PitchAnalyzer::getFreq(sample* processed_x, int length, double mean = 0) {
     int max_index = cblas_idamax(length, processed_x, 1);
+    if (processed_x[max_index] < mean / 2) {
+        return -1;
+    }
     double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
     double denominator = 2 * log(
         (processed_x[max_index] * processed_x[max_index]) /
@@ -91,11 +94,21 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
     if (buffer.NbInBuf() == BUFFER_SIZE) {
         sample x[BUFFER_SIZE];
         buffer.Get(x, BUFFER_SIZE);
-        // shift right, works if nFrames is constant
-        buffer.Add(&x[nFrames], BUFFER_SIZE - nFrames);
+        buffer.Add(&x[nFrames], BUFFER_SIZE - nFrames);// shift right, works if nFrames is constant
+
+        sample max;
+        ippsMax_64f(x, BUFFER_SIZE, &max);
 
         fft(x, BUFFER_SIZE);
-        mFftFreq = getFreq(x, FFT_SIZE);
+        auto mean = x[0];
+        auto new_fft_freq = getFreq(x, FFT_SIZE, mean);
+        if (new_fft_freq > 0 && max > conf.sound_threshold) {
+            mFftFreq = new_fft_freq;
+        }
+        else {
+            mFftFreq = -1;
+        }
+        x[0] = 0; // remove mean from signal for further calculations and plot
         PlotOnUi(0, x, FFT_SIZE);
 
         sample hps[HARMONIC_SMALLEST_LENGTH];
@@ -113,7 +126,7 @@ void PitchAnalyzer::OnIdle() {
     SendControlValueFromDelegate(1, mFftFreq);
 
     //sending plots
-    if (plots.contains(sentPlotNum)) {
+    if (plots.contains(sentPlotNum) && conf.send_plots) {
         for (int i = 0; i < PLOT_SIZE; i++) {
             auto ctrl = lastSentPlotIndex + (sentPlotNum + 1) * 1024;
             lock.acquire();
@@ -140,6 +153,9 @@ void PitchAnalyzer::ProcessMidiMsg(const IMidiMsg& msg) {
 }
 
 void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
+    if (!conf.send_plots) {
+        return;
+    }
     if (!plots.contains(plotNum)) {
         plots[plotNum] = new sample[PLOT_SIZE];
     }

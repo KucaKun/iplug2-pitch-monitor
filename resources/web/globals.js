@@ -113,6 +113,11 @@ function define_globals() {
     key_width = 18
 
     speed = 1 / 2;
+
+    // HUD 
+    FFT_FREQS_TEXTS = false
+    NOTE_FREQS_TEXTS = false
+    PRINT_INFOS = false
     main()
     register_events()
 }

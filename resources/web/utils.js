@@ -26,6 +26,12 @@ function testPoints(count) {
     return points;
 }
 
+function fillCircle(x, y, radius, context) {
+    context.beginPath();
+    context.arc(x, y, radius, 0, 2 * Math.PI);
+    context.fill();
+}
+
 function print(text, category, pos = 100) {
     infos[category].push({
         "pos": pos,
