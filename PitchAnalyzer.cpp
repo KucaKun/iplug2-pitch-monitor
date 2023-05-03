@@ -133,13 +133,6 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 
         sample max;
         ippsMax_64f(x, BUFFER_SIZE, &max);
-        auto auto_corr_freq = auto_corr(x, BUFFER_SIZE);
-        if (auto_corr_freq > 0 && max > conf.sound_threshold) {
-            mHpsFreq = auto_corr_freq;
-        }
-        else {
-            mHpsFreq = -1;
-        }
 
         fft(x, BUFFER_SIZE);
         auto mean = x[0];
@@ -152,16 +145,6 @@ void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
         }
         x[0] = 0; // remove mean from signal for further calculations and plot
         PlotOnUi(0, x, FFT_SIZE);
-        //sample hps[HARMONIC_SMALLEST_LENGTH];
-        //harmonic_product_spectrum(x, hps, HARMONIC_SMALLEST_LENGTH);
-
-        //auto new_hps_freq = getFreq(hps, HARMONIC_SMALLEST_LENGTH);
-        //if (new_hps_freq > 0 && max > conf.sound_threshold) {
-        //    mHpsFreq = new_hps_freq;
-        //}
-        //else {
-        //    mHpsFreq = -1;
-        //}
     }
 }
 

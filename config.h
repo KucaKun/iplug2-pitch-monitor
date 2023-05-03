@@ -53,7 +53,7 @@
 #define APP_SIGNAL_VECTOR_SIZE 256
 #define BUFFER_SIZE 8192
 #define FFT_SIZE BUFFER_SIZE/2
-#define NUM_HARMONIC_PROD 3
+#define NUM_HARMONIC_PROD 15
 #define PLOT_SIZE 512
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
