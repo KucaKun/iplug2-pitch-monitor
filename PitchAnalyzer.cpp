@@ -30,10 +30,10 @@ MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
     MKL_LONG status = ippsRealToCplx_64f(x, NULL, fft_x, buffer_size);
 
     // remove mean from signal
-    /*Ipp64fc mean;
+    Ipp64fc mean;
     ippsMean_64fc(fft_x, buffer_size, &mean);
     ippsSubC_64fc_I(mean, fft_x, buffer_size);
-    */
+
 
     // Windowing function
     ippsWinHamming_64fc_I(fft_x, buffer_size);
@@ -49,10 +49,6 @@ MKL_LONG PitchAnalyzer::fft(sample* x, const int buffer_size) {
     //ippsReal_64fc(fft_x, x, fft_size);
     ippsMagnitude_64fc(fft_x, x, fft_size);
     free(fft_x);
-
-    //ippsAbs_64f_I(x, fft_size);
-    //ippsLn_64f_I(x, fft_size);
-    //ippsAbs_64f_I(x, fft_size); // was minus, since we between 0 and 1
 
     x[0] = 0; // dc component
 
@@ -81,9 +77,11 @@ void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, co
 double PitchAnalyzer::getFreq(sample* processed_x, int length) {
     int max_index = cblas_idamax(length, processed_x, 1);
     double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
-    double denominator = 2 * log(processed_x[max_index] * processed_x[max_index]) /
-        (processed_x[max_index - 1] * processed_x[max_index + 1]);
-    double dm = 0;//nominator / denominator;
+    double denominator = 2 * log(
+        (processed_x[max_index] * processed_x[max_index]) /
+        (processed_x[max_index - 1] * processed_x[max_index + 1])
+    );
+    double dm = nominator / denominator;
     double freq = (GetSampleRate() * (dm + max_index)) / BUFFER_SIZE;
     return freq;
 }
