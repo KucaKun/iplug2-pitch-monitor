@@ -1,17 +1,34 @@
 
 #include "PitchAnalyzer.h"
 #include "IPlug_include_in_plug_src.h"
+static void stump() {
 
+}
 PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
     : Plugin(info, MakeConfig(kNumParams, kNumPresets))
-    , mPAPPHost(reinterpret_cast<IPlugAPPHost*>(info.pAppHost))
+    //, mPAPPHost(reinterpret_cast<IPlugAPPHost*>(info.pAppHost))
     , hand(), plots() {
-    mEditorInitFunc = [&]() {
-#ifdef OS_WIN
-        LoadFile(R"(D:\rep\iPlug2\Examples\PitchAnalyzer\resources\web\index.html)", nullptr);
-#else
-        LoadFile("index.html", GetBundleID());
-#endif
+
+    wchar_t path[MAX_PATH];
+    HMODULE hm = NULL;
+
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCWSTR)&stump, &hm) == 0) {
+        int ret = GetLastError();
+        fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
+        // Return or however you want to handle an error.
+    }
+    if (GetModuleFileName(hm, path, sizeof(path)) == 0) {
+        int ret = GetLastError();
+        fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
+        // Return or however you want to handle an error.
+    }
+    //\\..\\Resources\\index.html"
+    std::wstring t = std::wstring(path);
+    std::string index_path = std::string(t.begin(), t.end()) + std::string("\\..\\index.html");
+    mEditorInitFunc = [=]() {
+        LoadFile(index_path.c_str(), GetBundleID()); // in vst3 bundle
         EnableScroll(false);
     };
     buffer.SetSize(BUFFER_SIZE);
