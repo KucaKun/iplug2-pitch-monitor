@@ -7,7 +7,7 @@
 #include <semaphore>
 
 //iplug
-#include "IPlugAPP_host.h"
+//#include "IPlugAPP_host.h"
 #include "circbuf.h"
 
 //intel
@@ -53,7 +53,7 @@ public:
     void OnParamChange(int paramIdx) override;
 
 private:
-    IPlugAPPHost* mPAPPHost = nullptr;
+    //IPlugAPPHost* mPAPPHost = nullptr;
     DFTI_DESCRIPTOR_HANDLE hand;
     MKL_LONG fft(sample* x, const int buffer_size);
     void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
