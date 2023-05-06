@@ -1,10 +1,10 @@
 
 #include "PitchAnalyzer.h"
 #include "IPlug_include_in_plug_src.h"
-static std::string get_index_path(PitchAnalyzer& analyzer) {
+static std::string get_resources_path(PitchAnalyzer& analyzer) {
 #ifdef OS_WIN
 #ifdef _DEBUG
-    return R"(D:\rep\iPlug2\Examples\PitchAnalyzer\resources\web\index.html)";
+    return R"(D:\rep\iPlug2\Examples\PitchAnalyzer\resources\web\)";
 #endif 
 #ifndef _DEBUG
     wchar_t path[MAX_PATH];
@@ -23,13 +23,15 @@ static std::string get_index_path(PitchAnalyzer& analyzer) {
         // Return or however you want to handle an error.
     }
     std::wstring t = std::wstring(path);
-    std::string index_path = std::string(t.begin(), t.end()) + std::string("\\..\\index.html");
+    std::string index_path = std::string(t.begin(), t.end()) + std::string("\\..\\");
     return index_path;
 #endif // !_DEBUG
 #else
-    analyzer->LoadFile("index.html", GetBundleID());
 #endif
 }
+std::string get_ytdl_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "youtube-dl\\youtube-dl.exe"; }
+std::string get_index_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "index.html"; }
+
 PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
     : Plugin(info, MakeConfig(kNumParams, kNumPresets))
     , hand(), plots() {
@@ -301,5 +303,13 @@ int PitchAnalyzer::tests() {
     return 0;
 }
 
-
-bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) { return false; }
+void PitchAnalyzer::DownloadFromYt(std::string url) {
+    get_ytdl_path(*this);
+}
+bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) {
+    if (msgTag == 0 && ctrlTag == 0) {
+        const char* uint8Data = reinterpret_cast<const char*>(pData);
+        std::string download_url = std::string(uint8Data);
+    }
+    return false;
+}

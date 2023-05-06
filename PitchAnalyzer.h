@@ -57,6 +57,7 @@ private:
     double getFreq(sample* processed_x, int length, double mean);
     void manipulate_buffer(WDL_TypedCircBuf<sample>* buffer, sample* inputs, double& output_freq, int plot_num, int nFrames);
     void PlotOnUi(int plotNum, sample* data, int count);
+    void DownloadFromYt(std::string url);
     int tests();
 
     // Attributes
