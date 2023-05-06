@@ -14,9 +14,19 @@
 #define BUNDLE_DOMAIN "com"
 
 #define SHARED_RESOURCES_SUBPATH "PitchAnalyzer"
-
+#ifdef _DEBUG
 #define PLUG_CHANNEL_IO "1-1 2-2"
-
+#else
+#define PLUG_CHANNEL_IO "\
+1-1 \
+1.1-1 \
+1.2-1 \
+1.2-2 \
+2.1-1 \
+2.1-2 \
+2-2 \
+2.2-2"
+#endif // _DEBUG
 #define PLUG_LATENCY 0
 #define PLUG_TYPE 0
 #define PLUG_DOES_MIDI_IN 0
@@ -45,7 +55,7 @@
 
 #define VST3_SUBCATEGORY "Fx"
 
-#define APP_NUM_CHANNELS 1
+#define APP_NUM_CHANNELS 2
 #define APP_N_VECTOR_WAIT 0
 #define APP_MULT 1
 #define APP_COPY_AUV3 0
@@ -53,7 +63,7 @@
 #define APP_SIGNAL_VECTOR_SIZE 256
 #define BUFFER_SIZE 8192
 #define FFT_SIZE BUFFER_SIZE/2
-#define NUM_HARMONIC_PROD 15
+#define NUM_HARMONIC_PROD 3
 #define PLOT_SIZE 512
 #ifndef _TOOLS_H_
 #define _TOOLS_H_

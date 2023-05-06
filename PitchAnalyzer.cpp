@@ -1,20 +1,18 @@
 
 #include "PitchAnalyzer.h"
 #include "IPlug_include_in_plug_src.h"
-static void stump() {
-
-}
-PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
-    : Plugin(info, MakeConfig(kNumParams, kNumPresets))
-    //, mPAPPHost(reinterpret_cast<IPlugAPPHost*>(info.pAppHost))
-    , hand(), plots() {
-
+static std::string get_index_path(PitchAnalyzer& analyzer) {
+#ifdef OS_WIN
+#ifdef _DEBUG
+    return R"(D:\rep\iPlug2\Examples\PitchAnalyzer\resources\web\index.html)";
+#endif 
+#ifndef _DEBUG
     wchar_t path[MAX_PATH];
     HMODULE hm = NULL;
 
     if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
         GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCWSTR)&stump, &hm) == 0) {
+        (LPCWSTR)&get_index_path, &hm) == 0) {
         int ret = GetLastError();
         fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
         // Return or however you want to handle an error.
@@ -24,18 +22,53 @@ PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
         fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
         // Return or however you want to handle an error.
     }
-    //\\..\\Resources\\index.html"
     std::wstring t = std::wstring(path);
     std::string index_path = std::string(t.begin(), t.end()) + std::string("\\..\\index.html");
+    return index_path;
+#endif // !_DEBUG
+#else
+    analyzer->LoadFile("index.html", GetBundleID());
+#endif
+}
+PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
+    : Plugin(info, MakeConfig(kNumParams, kNumPresets))
+    , hand(), plots() {
+
+    SetChannelLabel(ERoute::kInput, 0, "Main L");
+    SetChannelLabel(ERoute::kInput, 1, "Main R");
+    SetChannelLabel(ERoute::kInput, 2, "SideChain L");
+    SetChannelLabel(ERoute::kInput, 3, "SideChain R");
+
+
     mEditorInitFunc = [=]() {
-        LoadFile(index_path.c_str(), GetBundleID()); // in vst3 bundle
+        LoadFile(get_index_path(*this).c_str(), GetBundleID()); // in vst3 bundle
         EnableScroll(false);
     };
-    buffer.SetSize(BUFFER_SIZE);
+    mainBuffer.SetSize(BUFFER_SIZE);
+    sideBuffer.SetSize(BUFFER_SIZE);
     if (tests() != 0) {
         DBGMSG("TESTS FAILED");
         exit(1);
     }
+}
+
+/* Compute frequency from processed x with gaussian interpolation
+    If mean is given, frequency returned will be below 0 when signal size is lower than half of mean.
+    src: http://www.add.ece.ufl.edu/4511/references/ImprovingFFTResoltuion.pdf
+*/
+double PitchAnalyzer::getFreq(sample* processed_x, int length, double mean = 0) {
+    int max_index = cblas_idamax(length, processed_x, 1);
+    if (processed_x[max_index] < mean / 2 && mean > 0) {
+        return -1;
+    }
+    double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
+    double denominator = 2 * log(
+        (processed_x[max_index] * processed_x[max_index]) /
+        (processed_x[max_index - 1] * processed_x[max_index + 1])
+    );
+    double dm = nominator / denominator;
+    double freq = (GetSampleRate() * (dm + max_index)) / BUFFER_SIZE;
+    return freq;
 }
 
 // INTEL FFT IN PLACE
@@ -89,7 +122,6 @@ void PitchAnalyzer::harmonic_product_spectrum(sample* fft_x, sample* hps_out, co
 
 /* Auto correlation */
 double PitchAnalyzer::auto_corr(sample* fft_x, const int size) {
-    return 1.;
     int buf_size = 0;
     int corr_size = 2 * size;
     Ipp8u* working_buffer;
@@ -122,56 +154,79 @@ double PitchAnalyzer::auto_corr(sample* fft_x, const int size) {
     return GetSampleRate() / i_interpolated;
 }
 
-/* Compute frequency from processed x with gaussian interpolation
-    If mean is given, frequency returned will be below 0 when signal size is lower than half of mean.
-    src: http://www.add.ece.ufl.edu/4511/references/ImprovingFFTResoltuion.pdf
-*/
-double PitchAnalyzer::getFreq(sample* processed_x, int length, double mean = 0) {
-    int max_index = cblas_idamax(length, processed_x, 1);
-    if (processed_x[max_index] < mean / 2 && mean > 0) {
-        return -1;
-    }
-    double nominator = log(processed_x[max_index + 1] / processed_x[max_index - 1]);
-    double denominator = 2 * log(
-        (processed_x[max_index] * processed_x[max_index]) /
-        (processed_x[max_index - 1] * processed_x[max_index + 1])
-    );
-    double dm = nominator / denominator;
-    double freq = (GetSampleRate() * (dm + max_index)) / BUFFER_SIZE;
-    return freq;
-}
 
-void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames) {
-    buffer.Add(inputs[0], nFrames);
-    if (buffer.NbInBuf() == BUFFER_SIZE) {
-        sample x[BUFFER_SIZE];
-        buffer.Get(x, BUFFER_SIZE);
-        buffer.Add(&x[nFrames], BUFFER_SIZE - nFrames);// shift right, works if nFrames is constant
+void PitchAnalyzer::manipulate_buffer(WDL_TypedCircBuf<sample>* buffer, sample* inputs, double& output_freq, int plot_num, int nFrames) {
+    buffer->Add(inputs, nFrames);
+    if (buffer->NbInBuf() == BUFFER_SIZE) {
+        sample block[BUFFER_SIZE];
+        buffer->Get(block, BUFFER_SIZE);
+        buffer->Add(&block[nFrames], BUFFER_SIZE - nFrames); // shift right, works if nFrames is constant
 
         sample max;
-        ippsMax_64f(x, BUFFER_SIZE, &max);
+        ippsMax_64f(block, BUFFER_SIZE, &max);
 
-        fft(x, BUFFER_SIZE);
-        auto mean = x[0];
-        auto new_fft_freq = getFreq(x, FFT_SIZE, mean);
-        if (new_fft_freq > 0 && max > conf.sound_threshold) {
-            mFftFreq = new_fft_freq;
+        fft(block, BUFFER_SIZE);
+
+        auto mean = block[0];
+        auto fft_freq = getFreq(block, FFT_SIZE, mean);
+
+        block[0] = 0; // remove mean from signal for further calculations and plot
+        auto corr_freq = auto_corr(block, FFT_SIZE);
+
+        if (max > conf.sound_threshold) {
+            if (fft_freq < corr_freq) {
+                output_freq = fft_freq;
+            }
+            else {
+                output_freq = corr_freq;
+            }
         }
         else {
-            mFftFreq = -1;
+            output_freq = -1;
         }
-        x[0] = 0; // remove mean from signal for further calculations and plot
-        PlotOnUi(0, x, FFT_SIZE);
+        PlotOnUi(plot_num, block, FFT_SIZE);
+    }
+}
+void PitchAnalyzer::ProcessBlock(sample** inputs, sample** outputs, int nFrames) {
+    const int nChans = NOutChansConnected();
+    for (int i = 0; i < 4; i++) {
+        bool connected = IsChannelConnected(ERoute::kInput, i);
+        if (connected != mInputChansConnected[i]) {
+            mInputChansConnected[i] = connected;
+        }
+    }
+
+#ifndef _DEBUG // no output on debug
+    for (int s = 0; s < nFrames; s++) {
+        for (int c = 0; c < nChans; c++) {
+            outputs[c][s] = inputs[c][s];
+        }
+    }
+#endif // _DEBUG
+
+    if (mInputChansConnected[0]) {
+        manipulate_buffer(&mainBuffer, inputs[0], mMainFreq, 0, nFrames);
+    }
+    if (mInputChansConnected[2]) {
+        manipulate_buffer(&sideBuffer, inputs[2], mSideFreq, 1, nFrames);
     }
 }
 
-void PitchAnalyzer::OnReset() {}
-
-bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) { return false; }
+void PitchAnalyzer::GetBusName(ERoute direction, int busIdx, int nBuses, WDL_String& str) const {
+    if (direction == ERoute::kInput) {
+        if (busIdx == 0)
+            str.Set("Main Input");
+        else
+            str.Set("SideChain");
+    }
+    else {
+        str.Set("Output");
+    }
+}
 
 void PitchAnalyzer::OnIdle() {
-    SendControlValueFromDelegate(0, mHpsFreq);
-    SendControlValueFromDelegate(1, mFftFreq);
+    SendControlValueFromDelegate(0, mMainFreq);
+    SendControlValueFromDelegate(1, mSideFreq);
 
     //sending plots
     if (plots.contains(sentPlotNum) && conf.send_plots) {
@@ -189,15 +244,6 @@ void PitchAnalyzer::OnIdle() {
             }
         }
     }
-}
-
-void PitchAnalyzer::OnParamChange(int paramIdx) {}
-
-void PitchAnalyzer::ProcessMidiMsg(const IMidiMsg& msg) {
-    TRACE;
-
-    msg.PrintMsg();
-    SendMidiMsg(msg);
 }
 
 void PitchAnalyzer::PlotOnUi(int plotNum, sample* data, int count) {
@@ -253,3 +299,6 @@ int PitchAnalyzer::tests() {
 
     return 0;
 }
+
+
+bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) { return false; }

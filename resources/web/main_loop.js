@@ -13,9 +13,9 @@ function main() {
             let note_name = Object.keys(NOTE_NAMES)[i]
             let y = freq_to_linear(note_val)
             if (note_name.length == 2) {
-                ctx.fillStyle = "rgba(242, 242, 242, 0.5)"
+                ctx.fillStyle = WHITE_KEY_COLOR
             } else {
-                ctx.fillStyle = "rgba(200, 200, 200, 0.8)"
+                ctx.fillStyle = BLACK_KEY_COLOR
             }
             ctx.fillRect(0, y - key_width / 2, piano_width, key_width)
 
@@ -49,33 +49,30 @@ function main() {
 
         // Draw frequency points
         let radius = 4
-        for (let i = 0; i < hps_freq_points.length; i++) {
-            let x = hps_freq_points[i]["x"] - radius / 2
-            let freq = hps_freq_points[i]["y"];
-            ctx.fillStyle = "green"
-            let y = freq_to_linear(freq) - radius / 2
-            ctx.fillRect(x, y, radius, radius);
-            hps_freq_points[i].x -= speed;
-        }
-        let last_pos = []
-        for (let i = 0; i < fft_freq_points.length; i++) {
-            let x = fft_freq_points[i]["x"]
-            let freq = fft_freq_points[i]["y"];
-            let y = freq_to_linear(freq)
+        // main input
+        function draw_freq_points(freq_points, color) {
+            let last_pos = []
+            for (let i = 0; i < freq_points.length; i++) {
+                let x = freq_points[i]["x"]
+                let freq = freq_points[i]["y"];
+                let y = freq_to_linear(freq)
 
-            // circle point is nicer
-            ctx.fillStyle = "blue";
-            fillCircle(x, y, radius / 2, ctx)
-            if (last_pos && Math.abs(last_pos[1] - y) < 100) {
-                ctx.beginPath()
-                ctx.moveTo(last_pos[0], last_pos[1])
-                ctx.quadraticCurveTo(x, y, x, y)
-                ctx.stroke()
+                ctx.fillStyle = color;
+                fillCircle(x, y, radius / 2, ctx)
+                if (last_pos && Math.abs(last_pos[1] - y) < 100) {
+                    ctx.beginPath()
+                    ctx.moveTo(last_pos[0], last_pos[1])
+
+                    ctx.strokeStyle = color
+                    ctx.quadraticCurveTo(x, y, x, y)
+                    ctx.stroke()
+                }
+                last_pos = [x, y]
+                freq_points[i].x -= speed;
             }
-            last_pos = [x, y]
-            fft_freq_points[i].x -= speed;
         }
-        ctx.strokeStyle = "rgba(12,23,230,0.4)"
+        draw_freq_points(main_freq_points, "rgba(49,20,240,1)")
+        draw_freq_points(side_freq_points, "rgba(49,240,12,1)")
 
         // Plot ffts
         let zero_level = height / 2;
@@ -120,21 +117,21 @@ function OnControlChange(ctrlTag, value) {
 
     if (ctrlTag == 0 && value > 0) {
         print("freq hps: " + value, 0, 50);
-        hps_freq_points.push({
+        main_freq_points.push({
             x: piano_width,
             y: value
         })
-        if (hps_freq_points.length == plot.length) {
-            hps_freq_points.shift()
+        if (main_freq_points.length == plot.length) {
+            main_freq_points.shift()
         }
     } else if (ctrlTag == 1 && value > 0) {
         print("freq fft: " + value, 0, 200);
-        fft_freq_points.push({
+        side_freq_points.push({
             x: piano_width,
             y: value
         })
-        if (fft_freq_points.length == plot.length) {
-            fft_freq_points.shift()
+        if (side_freq_points.length == plot.length) {
+            side_freq_points.shift()
         }
     } else {
         plot[ctrlTag - 1024] = value

@@ -93,14 +93,19 @@ function define_globals() {
     width = canvas.width
     piano_width = width * 0.8;
     height = canvas.height
-    hps_freq_points = [];
-    fft_freq_points = [];
+    main_freq_points = [];
+    side_freq_points = [];
     infos = Array(1024)
     for (let category = 0; category < infos.length; category++) {
         infos[category] = []
     }
     plot = Array(512)
-
+    plots = {
+        "main": {
+            size: 512,
+            points: []
+        }
+    }
     fft_input_size = 512
     fft_freqs = []
     for (i = 0; i < fft_input_size; i++) {
@@ -109,7 +114,7 @@ function define_globals() {
 
     is_dragging = false;
     y_drag_zero = 0
-    y_drag_offset = 0
+    y_drag_offset = 500
     key_width = 18
 
     speed = 1 / 2;

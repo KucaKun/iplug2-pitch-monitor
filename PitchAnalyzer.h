@@ -7,7 +7,6 @@
 #include <semaphore>
 
 //iplug
-//#include "IPlugAPP_host.h"
 #include "circbuf.h"
 
 //intel
@@ -46,27 +45,30 @@ public:
     PitchAnalyzer(const InstanceInfo& info);
 
     void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
-    void ProcessMidiMsg(const IMidiMsg& msg) override;
-    void OnReset() override;
     void OnIdle() override;
     bool OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) override;
-    void OnParamChange(int paramIdx) override;
+    void GetBusName(ERoute direction, int busIdx, int nBuses, WDL_String& str) const override;
 
 private:
-    //IPlugAPPHost* mPAPPHost = nullptr;
-    DFTI_DESCRIPTOR_HANDLE hand;
+    // Methods
     MKL_LONG fft(sample* x, const int buffer_size);
     void harmonic_product_spectrum(sample* fft_x, sample* hps_out, const int size);
     double auto_corr(sample* fft_x, const int size);
     double getFreq(sample* processed_x, int length, double mean);
+    void manipulate_buffer(WDL_TypedCircBuf<sample>* buffer, sample* inputs, double& output_freq, int plot_num, int nFrames);
     void PlotOnUi(int plotNum, sample* data, int count);
     int tests();
-    float mLastPeak = 0.;
-    double mHpsFreq = 0.;
-    double mFftFreq = 0.;
+
+    // Attributes
+    DFTI_DESCRIPTOR_HANDLE hand;
+    double mSideFreq = 0.;
+    double mMainFreq = 0.;
+    bool mInputChansConnected[4] = {};
+    bool mOutputChansConnected[2] = {};
     int lastSentPlotIndex = 0;
     int sentPlotNum = 0;
-    WDL_TypedCircBuf<sample> buffer;
+    WDL_TypedCircBuf<sample> mainBuffer;
+    WDL_TypedCircBuf<sample> sideBuffer;
     std::binary_semaphore lock{ 0 };
     std::map<int, sample*> plots;
     RuntimeSettings conf;
