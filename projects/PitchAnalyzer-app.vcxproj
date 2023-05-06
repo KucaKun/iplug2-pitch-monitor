@@ -115,8 +115,8 @@
     <IntDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\int\</IntDir>
     <LinkIncremental />
     <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
-    <threading-MKL-static-win-x64>intel</threading-MKL-static-win-x64>
-    <interface-MKL-static-win-x64>lp64</interface-MKL-static-win-x64>
+    <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
+    <interface-MKL-static-win-x64>ilp64</interface-MKL-static-win-x64>
     <linkage-IPP-static-win-x64>static</linkage-IPP-static-win-x64>
     <threading-IPP-static-win-x64>sequential</threading-IPP-static-win-x64>
   </PropertyGroup>
@@ -131,6 +131,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\int\</IntDir>
+    <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
+    <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
+    <interface-MKL-static-win-x64>ilp64</interface-MKL-static-win-x64>
+    <linkage-IPP-static-win-x64>static</linkage-IPP-static-win-x64>
+    <threading-IPP-static-win-x64>sequential</threading-IPP-static-win-x64>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tracer|Win32'">
     <OutDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\</OutDir>
@@ -143,6 +148,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tracer|x64'">
     <IntDir>$(SolutionDir)build-win\app\$(Platform)\$(Configuration)\int\</IntDir>
+    <linkage-IPP-static-win-x64>static</linkage-IPP-static-win-x64>
+    <threading-IPP-static-win-x64>sequential</threading-IPP-static-win-x64>
+    <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
+    <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
+    <interface-MKL-static-win-x64>ilp64</interface-MKL-static-win-x64>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -210,6 +220,7 @@
       <AdditionalIncludeDirectories>$(APP_INC_PATHS);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -250,6 +261,7 @@
       <PreprocessorDefinitions>$(APP_DEFS);$(TRACER_DEFS);$(EXTRA_TRACER_DEFS);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(APP_INC_PATHS);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
