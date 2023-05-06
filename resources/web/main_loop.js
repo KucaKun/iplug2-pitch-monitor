@@ -107,6 +107,17 @@ function main() {
     animate();
 }
 
+async function OnDownloadSubmit(e) {
+    let url = document.getElementById("yt-url").value
+    if (url.length) {
+        let utf8Encode = new TextEncoder();
+        let uint8 = utf8Encode.encode(url + "\0"); // zero ended
+        var bin = String.fromCharCode.apply(null, uint8);
+        SAMFUI(0, 0, window.btoa(bin))
+        document.getElementById("yt-url").value = ""
+    }
+}
+
 function OnParamChange(param, value) {
     if (param == 0) {
 

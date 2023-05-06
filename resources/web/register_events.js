@@ -4,4 +4,5 @@ function register_events() {
     canvas.addEventListener('mousemove', OnMouseMove)
     canvas.addEventListener('keydown', OnKeyDown)
     canvas.addEventListener('wheel', OnScroll)
+    document.getElementById("yt-submit").addEventListener('click', OnDownloadSubmit)
 }
