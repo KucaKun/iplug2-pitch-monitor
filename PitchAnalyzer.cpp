@@ -151,6 +151,7 @@ double PitchAnalyzer::auto_corr(sample* fft_x, const int size) {
     double dm = nominator / denominator;
     double i_interpolated = (dm + peak_after_valley);
     free(corr);
+    ippsFree(working_buffer);
     return GetSampleRate() / i_interpolated;
 }
 
