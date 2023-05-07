@@ -12,7 +12,7 @@ static std::string get_resources_path(PitchAnalyzer& analyzer) {
 
     if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
         GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCWSTR)&get_index_path, &hm) == 0) {
+        (LPCWSTR)&get_resources_path, &hm) == 0) {
         int ret = GetLastError();
         fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
         // Return or however you want to handle an error.
@@ -29,8 +29,8 @@ static std::string get_resources_path(PitchAnalyzer& analyzer) {
 #else
 #endif
 }
-std::string get_ytdl_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "youtube-dl\\youtube-dl.exe"; }
-std::string get_ffmpeg_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "youtube-dl\\ffmpeg.exe"; }
+std::string get_ytdl_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "yt-dlp\\yt-dlp.exe"; }
+std::string get_ffmpeg_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "yt-dlp\\ffmpeg.exe"; }
 std::string get_index_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "index.html"; }
 
 PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
@@ -337,7 +337,7 @@ void PitchAnalyzer::DownloadFromYt(std::string url) {
     std::wstring ffmpeg_path = converter.from_bytes(get_ffmpeg_path(*this));
     std::wstring url_wide = converter.from_bytes(url);
     std::wstring output_path = get_dir_path();
-    std::wstring command_w = ytdl_path + L" -x --restrict-filenames --audio-format=wav --ffmpeg-location " + ffmpeg_path + L" -P \"" + output_path + L"\" " + url_wide + L" & pause";
+    std::wstring command_w = L"\"" + ytdl_path + L"\" -x --restrict-filenames --audio-format=wav --ffmpeg-location " + ffmpeg_path + L" -P \"" + output_path + L"\" " + url_wide + L" & pause";
     std::string command = converter.to_bytes(command_w);
     DBGMSG("%s", command.c_str());
     system(command.c_str());
