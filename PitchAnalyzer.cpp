@@ -333,12 +333,13 @@ std::wstring get_dir_path() {
 
 void PitchAnalyzer::DownloadFromYt(std::string url) {
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring ytdl_path = converter.from_bytes(get_ytdl_path(*this));
-    std::wstring ffmpeg_path = converter.from_bytes(get_ffmpeg_path(*this));
+    std::wstring ytdl_path = L"\"" + converter.from_bytes(get_ytdl_path(*this)) + L"\"";
+    std::wstring ffmpeg_path = L"\"" + converter.from_bytes(get_ffmpeg_path(*this)) + L"\"";
     std::wstring url_wide = converter.from_bytes(url);
-    std::wstring output_path = get_dir_path();
-    std::wstring command_w = L"\"" + ytdl_path + L"\" -x --restrict-filenames --audio-format=wav --ffmpeg-location " + ffmpeg_path + L" -P \"" + output_path + L"\" " + url_wide + L" & pause";
+    std::wstring output_path = L"\"" + get_dir_path() + L"\"";
+    std::wstring command_w = L"cmd /C \"" + ytdl_path + L" -x --restrict-filenames --audio-format=wav --ffmpeg-location " + ffmpeg_path + L" -P " + output_path + L" " + url_wide + L" & pause \"";
     std::string command = converter.to_bytes(command_w);
+    // test on adele hUbPwTe14m4
     DBGMSG("%s", command.c_str());
     system(command.c_str());
     std::string explorer = converter.to_bytes(L"explorer " + output_path);
