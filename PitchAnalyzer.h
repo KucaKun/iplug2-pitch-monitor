@@ -5,6 +5,9 @@
 #include "float.h"
 #include <complex>
 #include <semaphore>
+#include <shlobj.h>
+#include <locale>
+#include <codecvt>
 
 //iplug
 #include "circbuf.h"

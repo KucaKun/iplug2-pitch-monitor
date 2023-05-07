@@ -30,6 +30,7 @@ static std::string get_resources_path(PitchAnalyzer& analyzer) {
 #endif
 }
 std::string get_ytdl_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "youtube-dl\\youtube-dl.exe"; }
+std::string get_ffmpeg_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "youtube-dl\\ffmpeg.exe"; }
 std::string get_index_path(PitchAnalyzer& analyzer) { return get_resources_path(analyzer) + "index.html"; }
 
 PitchAnalyzer::PitchAnalyzer(const InstanceInfo& info)
@@ -303,13 +304,51 @@ int PitchAnalyzer::tests() {
     return 0;
 }
 
+std::wstring get_dir_path() {
+    std::wstring returned_path;
+    IFileDialog* pFileOpen;
+    PWSTR dir_path;
+    IShellItem* pItem;
+    DWORD dwOptions;
+    if (SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) {
+        if (SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen)))) {
+            if (SUCCEEDED(pFileOpen->GetOptions(&dwOptions))) {
+                pFileOpen->SetOptions(FOS_PICKFOLDERS);
+            }
+            if (SUCCEEDED(pFileOpen->Show(NULL))) {
+                if (SUCCEEDED(pFileOpen->GetResult(&pItem))) {
+                    if (SUCCEEDED(pItem->GetDisplayName(SIGDN_FILESYSPATH, &dir_path))) {
+                        returned_path = dir_path;
+                        pItem->Release();
+                        CoTaskMemFree(dir_path);
+                    }
+                }
+            }
+            pFileOpen->Release();
+        }
+        CoUninitialize();
+    }
+    return returned_path;
+}
+
 void PitchAnalyzer::DownloadFromYt(std::string url) {
-    get_ytdl_path(*this);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring ytdl_path = converter.from_bytes(get_ytdl_path(*this));
+    std::wstring ffmpeg_path = converter.from_bytes(get_ffmpeg_path(*this));
+    std::wstring url_wide = converter.from_bytes(url);
+    std::wstring output_path = get_dir_path();
+    std::wstring command_w = ytdl_path + L" -x --restrict-filenames --audio-format=wav --ffmpeg-location " + ffmpeg_path + L" -P \"" + output_path + L"\" " + url_wide + L" & pause";
+    std::string command = converter.to_bytes(command_w);
+    DBGMSG("%s", command.c_str());
+    system(command.c_str());
+    std::string explorer = converter.to_bytes(L"explorer " + output_path);
+    system(explorer.c_str());
 }
 bool PitchAnalyzer::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* pData) {
     if (msgTag == 0 && ctrlTag == 0) {
         const char* uint8Data = reinterpret_cast<const char*>(pData);
         std::string download_url = std::string(uint8Data);
+        DownloadFromYt(download_url);
     }
     return false;
 }
